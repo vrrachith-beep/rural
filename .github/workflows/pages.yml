@@ -25,6 +25,20 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare runtime config
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cat > config.js <<EOF
+          window.APP_CONFIG = {
+            googleMapsApiKey: "",
+            youtubeApiKey: "",
+            geminiApiKey: "${GEMINI_API_KEY}",
+            apiBaseUrl: "https://asia-south1-cleancredit-live.cloudfunctions.net/api"
+          };
+          EOF
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
