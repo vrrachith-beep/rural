@@ -601,6 +601,50 @@ async function fetchDirectGeminiChat(message) {
   return (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
 }
 
+function localAssistantReply(message) {
+  const lowerMessage = message.toLowerCase();
+  const locationLines = savedSupportPlaces().map((place) =>
+    `${place.category}: ${place.name} (${place.distanceText}). Tap Navigate on its card for directions.`
+  );
+
+  if (lowerMessage.includes("police") || lowerMessage.includes("legal") || lowerMessage.includes("hospital") || lowerMessage.includes("diagnostic") || lowerMessage.includes("nearby")) {
+    return [
+      "Here are the saved local support points:",
+      ...locationLines,
+      "For urgent danger call 100. For a medical emergency call 108."
+    ].join("\n");
+  }
+
+  if (lowerMessage.includes("emergency") || lowerMessage.includes("urgent") || lowerMessage.includes("accident") || lowerMessage.includes("help")) {
+    return [
+      "Quick emergency checklist:",
+      "1. Move people away from immediate danger if it is safe.",
+      "2. Call 108 for medical help or 100 for police support.",
+      "3. Share your village name, landmark, and any live GPS shown in the app.",
+      "4. Use the report form to record the issue after the urgent call is made."
+    ].join("\n");
+  }
+
+  if (lowerMessage.includes("report") || lowerMessage.includes("complaint") || lowerMessage.includes("issue")) {
+    return "Use the File report section, enter the village or landmark, describe who is affected and how urgent it is, then submit. If GPS is available, the app attaches it automatically.";
+  }
+
+  if (lowerMessage.includes("soil") || lowerMessage.includes("crop") || lowerMessage.includes("farm") || lowerMessage.includes("water") || lowerMessage.includes("irrigation")) {
+    const soil = state.activeSoil;
+    const advice = soilRules[soil];
+    if (advice) {
+      return `For ${soil} soil: suggested crops are ${advice.crops}, fertilizer support is ${advice.fertilizer}, and water guidance is: ${advice.water}`;
+    }
+    return "Choose your soil type first. For low water, prefer drip irrigation, mulching, early morning watering, and short-cycle crops suited to your soil.";
+  }
+
+  if (state.language === "kn") {
+    return "ನಾನು ಈಗ offline ಸಹಾಯಕವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ. ಪೊಲೀಸ್, ಕಾನೂನು ಸಹಾಯ, ಆಸ್ಪತ್ರೆ, ಬೆಳೆ, ಮಣ್ಣು, ತುರ್ತು ಪರಿಸ್ಥಿತಿ ಅಥವಾ ದೂರು ಬಗ್ಗೆ ಕೇಳಿ.";
+  }
+
+  return "I am running in offline helper mode right now. Ask me about police/legal/hospital locations, emergencies, filing a report, soil, crops, or irrigation.";
+}
+
 async function fetchBackendSpeech(text) {
   const response = await fetch(`${API_BASE_URL}/tts`, {
     method: "POST",
@@ -675,6 +719,18 @@ async function fetchDirectGeminiSpeech(text) {
   };
 }
 
+function speakWithBrowserVoice(text) {
+  if (!window.speechSynthesis) {
+    throw new Error(t("voiceError"));
+  }
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = state.language === "kn" ? "kn-IN" : "en-IN";
+  utterance.onend = () => setChatStatus(t("voiceReady"));
+  window.speechSynthesis.speak(utterance);
+}
+
 async function submitChatMessage(event) {
   event.preventDefault();
   const input = document.getElementById("chatInput");
@@ -692,7 +748,11 @@ async function submitChatMessage(event) {
     try {
       reply = await fetchBackendChat(message);
     } catch {
-      reply = await fetchDirectGeminiChat(message);
+      try {
+        reply = await fetchDirectGeminiChat(message);
+      } catch {
+        reply = localAssistantReply(message);
+      }
     }
 
     if (!reply) {
@@ -762,7 +822,12 @@ async function speakAssistantReply() {
     try {
       speech = await fetchBackendSpeech(state.lastAssistantReply);
     } catch {
-      speech = await fetchDirectGeminiSpeech(state.lastAssistantReply);
+      try {
+        speech = await fetchDirectGeminiSpeech(state.lastAssistantReply);
+      } catch {
+        speakWithBrowserVoice(state.lastAssistantReply);
+        return;
+      }
     }
 
     const audio = new Audio(`data:${speech.mimeType};base64,${speech.audioBase64}`);
