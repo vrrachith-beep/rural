@@ -19,7 +19,11 @@ const state = {
   language: "en",
   lastAssistantReply: "",
   recognition: null,
-  isListening: false
+  isListening: false,
+  sosActive: false,
+  sosAudioContext: null,
+  sosBuzzerTimer: null,
+  lastSosSentAt: 0
 };
 
 const translations = {
@@ -48,6 +52,15 @@ const translations = {
     speakReply: "Speak reply",
     send: "Send",
     quickActions: "Quick actions",
+    womenSos: "Women SOS",
+    sosActiveLabel: "Emergency",
+    sharingLiveLocation: "Sharing live location",
+    stopSos: "Stop SOS",
+    navigatePolice: "Navigate police",
+    call: "Call",
+    navigate: "Navigate",
+    you: "You",
+    assistant: "Assistant",
     fileReport: "File report",
     openFarmGuide: "Open farm guide",
     askAboutArea: "Ask about my area",
@@ -124,6 +137,15 @@ const translations = {
     speakReply: "ಉತ್ತರವನ್ನು ಕೇಳಿ",
     send: "ಕಳುಹಿಸಿ",
     quickActions: "ತ್ವರಿತ ಕ್ರಮಗಳು",
+    womenSos: "ಮಹಿಳಾ SOS",
+    sosActiveLabel: "ತುರ್ತು",
+    sharingLiveLocation: "ಲೈವ್ ಸ್ಥಳ ಹಂಚಲಾಗುತ್ತಿದೆ",
+    stopSos: "SOS ನಿಲ್ಲಿಸಿ",
+    navigatePolice: "ಪೊಲೀಸ್ ಕಡೆಗೆ ಹೋಗಿ",
+    call: "ಕರೆ",
+    navigate: "ದಾರಿ",
+    you: "ನೀವು",
+    assistant: "ಸಹಾಯಕ",
     fileReport: "ದೂರು ಸಲ್ಲಿಸಿ",
     openFarmGuide: "ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ ತೆರೆಯಿರಿ",
     askAboutArea: "ನನ್ನ ಪ್ರದೇಶದ ಬಗ್ಗೆ ಕೇಳಿ",
@@ -237,9 +259,10 @@ function t(key) {
 
 function setIndicator(mode, message) {
   const indicator = document.getElementById("offlineIndicator");
+  const isEmergency = mode === t("sosActiveLabel");
   indicator.textContent = mode;
-  indicator.style.color = mode === t("offlineMode") ? "#ffb4b4" : "#b4ffd2";
-  indicator.style.borderColor = mode === t("offlineMode") ? "rgba(255, 107, 107, 0.3)" : "rgba(125, 252, 192, 0.3)";
+  indicator.style.color = mode === t("offlineMode") || isEmergency ? "#ffb4b4" : "#b4ffd2";
+  indicator.style.borderColor = mode === t("offlineMode") || isEmergency ? "rgba(255, 107, 107, 0.3)" : "rgba(125, 252, 192, 0.3)";
   document.getElementById("locationText").textContent = message;
 }
 
@@ -251,7 +274,7 @@ function addChatMessage(role, text) {
   const stream = document.getElementById("chatMessages");
   const bubble = document.createElement("article");
   bubble.className = `chat-bubble ${role === "user" ? "chat-bubble-user" : ""}`;
-  bubble.innerHTML = `<strong>${role === "user" ? "You" : "Assistant"}</strong><div>${escapeHtml(text).replaceAll("\n", "<br>")}</div>`;
+  bubble.innerHTML = `<strong>${role === "user" ? t("you") : t("assistant")}</strong><div>${escapeHtml(text).replaceAll("\n", "<br>")}</div>`;
   stream.appendChild(bubble);
   stream.scrollTop = stream.scrollHeight;
 }
@@ -271,6 +294,14 @@ function setReportStatus(message, isError = false) {
   const node = document.getElementById("reportStatus");
   node.textContent = message;
   node.style.color = isError ? "#ffb4b4" : "#b4ffd2";
+}
+
+function setSosStatus(message, isError = false) {
+  const node = document.getElementById("sosStatus");
+  if (node) {
+    node.textContent = message;
+    node.style.color = isError ? "#ffb4b4" : "#ffd6d6";
+  }
 }
 
 function distanceKm(from, to) {
@@ -310,8 +341,8 @@ function cardTemplate(place) {
       <h3>${escapeHtml(place.name)}</h3>
       <p class="service-meta">${escapeHtml(place.distanceText)}</p>
       <div class="service-actions">
-        <a class="pill-action" href="${tel}">Call</a>
-        <a class="pill-action pill-action-accent" href="${navUrl}" target="_blank" rel="noopener">Navigate</a>
+        <a class="pill-action" href="${tel}">${t("call")}</a>
+        <a class="pill-action pill-action-accent" href="${navUrl}" target="_blank" rel="noopener">${t("navigate")}</a>
       </div>
     </article>
   `;
@@ -401,6 +432,10 @@ function updateUserLocation(position) {
   if (shouldRefreshPlaces) {
     state.lastPlacesLookupLocation = nextLocation;
     findNearbyServices();
+  }
+
+  if (state.sosActive) {
+    updateSosLocationSharing();
   }
 }
 
@@ -515,6 +550,29 @@ async function submitReport(event) {
     return;
   }
 
+  try {
+    const result = await sendReportPayload(payload);
+    event.target.reset();
+    setReportStatus(result.local ? "Report saved locally. Firebase sync is pending." : t("reportSaved"), result.local);
+  } catch (error) {
+    setReportStatus(error.message || t("reportFailed"), true);
+  }
+}
+
+function saveLocalComplaint(payload) {
+  const queue = JSON.parse(window.localStorage?.getItem("ruralComplaintQueue") || "[]");
+  const localId = `local-${Date.now()}`;
+  queue.push({
+    ...payload,
+    localId,
+    savedAt: new Date().toISOString(),
+    syncStatus: "pending"
+  });
+  window.localStorage?.setItem("ruralComplaintQueue", JSON.stringify(queue.slice(-50)));
+  return { ok: true, local: true, complaintId: localId };
+}
+
+async function sendReportPayload(payload) {
   setReportStatus(t("reportSubmitting"));
 
   try {
@@ -523,15 +581,160 @@ async function submitReport(event) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(result.error || t("reportFailed"));
+      return saveLocalComplaint(payload);
     }
-    event.target.reset();
-    setReportStatus(t("reportSaved"));
+    return result;
+  } catch {
+    return saveLocalComplaint(payload);
+  }
+}
+
+function nearestPolicePlace() {
+  return savedSupportPlaces().find((place) => place.category.includes("Police")) || localEmergencyContacts.features[0];
+}
+
+function renderSosPoliceCard() {
+  const police = nearestPolicePlace();
+  const box = document.getElementById("nearestPoliceBox");
+  const nav = document.getElementById("nearestPoliceNavigate");
+  if (!police || !box || !nav) {
+    return;
+  }
+
+  const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${police.location.lat},${police.location.lng}`;
+  box.innerHTML = `
+    <p><strong>${escapeHtml(police.name)}</strong></p>
+    <p class="panel-meta">${escapeHtml(police.distanceText || "Saved police location")}</p>
+    <p class="panel-meta">${state.language === "kn" ? "ತುರ್ತು ಪೊಲೀಸ್ ಸಹಾಯಕ್ಕೆ 100 ಕರೆ ಮಾಡಿ." : "Call 100 for urgent police help."}</p>
+  `;
+  nav.href = navUrl;
+}
+
+function playSosBuzzer() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    return;
+  }
+
+  if (!state.sosAudioContext) {
+    state.sosAudioContext = new AudioContext();
+  }
+
+  const beep = () => {
+    const now = state.sosAudioContext.currentTime;
+    const oscillator = state.sosAudioContext.createOscillator();
+    const gain = state.sosAudioContext.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(980, now);
+    oscillator.frequency.setValueAtTime(1320, now + 0.18);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.45, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
+    oscillator.connect(gain).connect(state.sosAudioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.5);
+  };
+
+  beep();
+  state.sosBuzzerTimer = window.setInterval(beep, 850);
+}
+
+function stopSosBuzzer() {
+  if (state.sosBuzzerTimer) {
+    window.clearInterval(state.sosBuzzerTimer);
+    state.sosBuzzerTimer = null;
+  }
+}
+
+function fillSosComplaintForm() {
+  const locationText = state.userLocation
+    ? `Live GPS ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`
+    : "Live GPS pending";
+  const police = nearestPolicePlace();
+
+  document.getElementById("issueType").value = "Women SOS emergency";
+  document.getElementById("issueLocation").value = locationText;
+  document.getElementById("issueDetails").value = [
+    state.language === "kn" ? "ಮಹಿಳಾ SOS ತುರ್ತು ಪರಿಸ್ಥಿತಿ." : "WOMEN SOS EMERGENCY.",
+    state.language === "kn" ? "Rural Resilience Hub ಆ್ಯಪ್‌ನಿಂದ ಜೋರಾದ buzzer ಸಕ್ರಿಯವಾಗಿದೆ." : "Loud buzzer activated from the Rural Resilience Hub app.",
+    state.language === "kn" ? `ಹತ್ತಿರದ ಉಳಿಸಿದ ಪೊಲೀಸ್ ಸಹಾಯ: ${police?.name || "Police support"}.` : `Nearest saved police support: ${police?.name || "Police support"}.`,
+    state.userLocation
+      ? state.language === "kn"
+        ? `ಲೈವ್ ಸ್ಥಳ: ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}.`
+        : `Live location: ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}.`
+      : state.language === "kn"
+        ? "ಲೈವ್ ಸ್ಥಳ ಸೇರಿಸಲು GPS ಅನುಮತಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ."
+        : "Waiting for GPS permission to attach live location."
+  ].join(" ");
+}
+
+async function updateSosLocationSharing(force = false) {
+  if (!state.sosActive) {
+    return;
+  }
+
+  fillSosComplaintForm();
+  renderSosPoliceCard();
+
+  if (!state.userLocation) {
+    setSosStatus(state.language === "kn" ? "ತುರ್ತು ಸಕ್ರಿಯವಾಗಿದೆ. ಲೈವ್ ಸ್ಥಳ ಹಂಚಲು GPS ಅನುಮತಿಗಾಗಿ ಕಾಯುತ್ತಿದೆ." : "Emergency active. Waiting for GPS permission to share live location.", true);
+    return;
+  }
+
+  const now = Date.now();
+  if (!force && now - state.lastSosSentAt < 30000) {
+    setSosStatus(`${t("sosActiveLabel")}, ${t("sharingLiveLocation")}: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`);
+    return;
+  }
+
+  state.lastSosSentAt = now;
+  setSosStatus(`${t("sosActiveLabel")}, ${t("sharingLiveLocation")}: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`);
+
+  try {
+    const result = await sendReportPayload({
+      type: "Women SOS emergency",
+      locationLabel: `Live GPS ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`,
+      details: document.getElementById("issueDetails").value,
+      gps: state.userLocation
+    });
+    if (result.local) {
+      setReportStatus(state.language === "kn" ? "ಮಹಿಳಾ SOS ದೂರು locally save ಆಗಿದೆ. Firebase sync pending." : "Women SOS complaint saved locally. Firebase sync is pending.", true);
+      setSosStatus(state.language === "kn"
+        ? `ತುರ್ತು active. ಸ್ಥಳ form ನಲ್ಲಿ ಉಳಿದಿದೆ: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`
+        : `Emergency active. Location is saved in the complaint form: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`, true);
+      return;
+    }
+    setReportStatus(state.language === "kn" ? "ಮಹಿಳಾ SOS ದೂರು ಲೈವ್ GPS ಜೊತೆಗೆ ಕಳುಹಿಸಲಾಗಿದೆ." : "Women SOS complaint sent with live GPS.");
+    setSosStatus(state.language === "kn"
+      ? `ತುರ್ತು ದೂರು ಕಳುಹಿಸಲಾಗಿದೆ. ಲೈವ್ ಸ್ಥಳ ಹಂಚಲಾಗುತ್ತಿದೆ: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`
+      : `Emergency report sent. Sharing live location: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`);
   } catch (error) {
+    setSosStatus(state.language === "kn" ? "ತುರ್ತು ಸಕ್ರಿಯವಾಗಿದೆ. ದೂರು form ತುಂಬಲಾಗಿದೆ; Firebase ಗೆ ಕಳುಹಿಸುವುದು pending." : "Emergency active. Complaint form is filled; Firebase report send is pending.", true);
     setReportStatus(error.message || t("reportFailed"), true);
   }
+}
+
+function startWomenSos() {
+  state.sosActive = true;
+  state.lastSosSentAt = 0;
+  document.getElementById("sosPanel").hidden = false;
+  setIndicator(t("sosActiveLabel"), t("sharingLiveLocation"));
+  setTrackingMode(t("sharingLiveLocation"));
+  renderSosPoliceCard();
+  fillSosComplaintForm();
+  playSosBuzzer();
+  startLocationTracking();
+  updateSosLocationSharing(true);
+  document.getElementById("accountability").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function stopWomenSos() {
+  state.sosActive = false;
+  stopSosBuzzer();
+  setSosStatus(state.language === "kn" ? "SOS ನಿಲ್ಲಿಸಲಾಗಿದೆ. ದೂರು ವಿವರಗಳು form ನಲ್ಲಿ ಉಳಿದಿವೆ." : "SOS stopped. Complaint details remain in the form.");
+  setIndicator(t("online"), state.userLocation ? `Live GPS: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}` : t("waitingGps"));
 }
 
 async function fetchBackendChat(message) {
@@ -619,7 +822,9 @@ function localAssistantReply(message) {
   const hasAny = (words) => words.some((word) => lowerMessage.includes(word));
   const isKannada = state.language === "kn" || /[\u0C80-\u0CFF]/.test(message);
   const locationLines = savedSupportPlaces().map((place) =>
-    `${place.category}: ${place.name} (${place.distanceText}). Tap Navigate on its card for directions.`
+    isKannada
+      ? `${place.category}: ${place.name} (${place.distanceText}). ದಾರಿಗೆ ಅದರ card ನಲ್ಲಿ ${t("navigate")} ಒತ್ತಿ.`
+      : `${place.category}: ${place.name} (${place.distanceText}). Tap Navigate on its card for directions.`
   );
 
   if (hasAny(["police", "legal", "hospital", "diagnostic", "nearby", "ಪೊಲೀಸ್", "ಕಾನೂನು", "ಆಸ್ಪತ್ರೆ", "ಡಯಾಗ್ನೋಸ್ಟಿಕ್", "ಹತ್ತಿರ"])) {
@@ -887,6 +1092,11 @@ function applyTranslations() {
   document.getElementById("issueLocation").placeholder = t("issuePlaceholder");
   document.getElementById("issueDetails").placeholder = t("detailsPlaceholder");
   setMicButtonState();
+  if (state.sosActive) {
+    renderSosPoliceCard();
+    fillSosComplaintForm();
+    setSosStatus(`${t("sosActiveLabel")}, ${t("sharingLiveLocation")}`);
+  }
 }
 
 function bindEvents() {
@@ -897,6 +1107,8 @@ function bindEvents() {
   document.getElementById("micBtn").addEventListener("click", startVoiceInput);
   document.getElementById("speakBtn").addEventListener("click", speakAssistantReply);
   document.getElementById("locateBtn").addEventListener("click", startLocationTracking);
+  document.getElementById("womenSosBtn").addEventListener("click", startWomenSos);
+  document.getElementById("stopSosBtn").addEventListener("click", stopWomenSos);
   document.getElementById("soilSelect").addEventListener("change", (event) => renderSoilAdvice(event.target.value));
   document.getElementById("reportForm").addEventListener("submit", submitReport);
   document.getElementById("chatForm").addEventListener("submit", submitChatMessage);

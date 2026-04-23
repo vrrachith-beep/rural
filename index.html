@@ -99,10 +99,23 @@
           <article class="panel">
             <p class="panel-kicker" data-i18n="quickActions">Quick actions</p>
             <div class="quick-grid">
+              <button id="womenSosBtn" class="quick-card quick-card-button quick-card-danger" type="button" data-i18n="womenSos">Women SOS</button>
               <a class="quick-card" href="#accountability" data-i18n="fileReport">File report</a>
               <a class="quick-card" href="#farming" data-i18n="openFarmGuide">Open farm guide</a>
               <button id="chatPromptLocation" class="quick-card quick-card-button" type="button" data-i18n="askAboutArea">Ask about my area</button>
               <button id="chatPromptEmergency" class="quick-card quick-card-button" type="button" data-i18n="emergencyChecklist">Emergency checklist</button>
+            </div>
+            <div id="sosPanel" class="sos-panel" hidden>
+              <div>
+                <p class="panel-kicker" data-i18n="sosActiveLabel">Emergency</p>
+                <h3 data-i18n="sharingLiveLocation">Sharing live location</h3>
+                <p id="sosStatus" class="panel-meta" aria-live="polite"></p>
+              </div>
+              <div id="nearestPoliceBox" class="sos-police"></div>
+              <div class="sos-actions">
+                <button id="stopSosBtn" class="button button-secondary" type="button" data-i18n="stopSos">Stop SOS</button>
+                <a id="nearestPoliceNavigate" class="button button-primary" href="#" target="_blank" rel="noopener" data-i18n="navigatePolice">Navigate police</a>
+              </div>
             </div>
           </article>
         </aside>
@@ -150,6 +163,7 @@
                 <option>Drainage</option>
                 <option>Public building</option>
                 <option>Medical help access</option>
+                <option>Women SOS emergency</option>
               </select>
             </label>
             <label>
