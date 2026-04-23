@@ -603,11 +603,20 @@ async function fetchDirectGeminiChat(message) {
 
 function localAssistantReply(message) {
   const lowerMessage = message.toLowerCase();
+  const hasAny = (words) => words.some((word) => lowerMessage.includes(word));
+  const isKannada = state.language === "kn" || /[\u0C80-\u0CFF]/.test(message);
   const locationLines = savedSupportPlaces().map((place) =>
     `${place.category}: ${place.name} (${place.distanceText}). Tap Navigate on its card for directions.`
   );
 
-  if (lowerMessage.includes("police") || lowerMessage.includes("legal") || lowerMessage.includes("hospital") || lowerMessage.includes("diagnostic") || lowerMessage.includes("nearby")) {
+  if (hasAny(["police", "legal", "hospital", "diagnostic", "nearby", "ಪೊಲೀಸ್", "ಕಾನೂನು", "ಆಸ್ಪತ್ರೆ", "ಡಯಾಗ್ನೋಸ್ಟಿಕ್", "ಹತ್ತಿರ"])) {
+    if (isKannada) {
+      return [
+        "ಉಳಿಸಿದ ಸ್ಥಳೀಯ ಸಹಾಯ ಕೇಂದ್ರಗಳು:",
+        ...locationLines,
+        "ತುರ್ತು ಅಪಾಯಕ್ಕೆ 100 ಕರೆ ಮಾಡಿ. ವೈದ್ಯಕೀಯ ತುರ್ತು ಪರಿಸ್ಥಿತಿಗೆ 108 ಕರೆ ಮಾಡಿ."
+      ].join("\n");
+    }
     return [
       "Here are the saved local support points:",
       ...locationLines,
@@ -615,7 +624,16 @@ function localAssistantReply(message) {
     ].join("\n");
   }
 
-  if (lowerMessage.includes("emergency") || lowerMessage.includes("urgent") || lowerMessage.includes("accident") || lowerMessage.includes("help")) {
+  if (hasAny(["emergency", "urgent", "accident", "help", "ತುರ್ತು", "ಅಪಘಾತ", "ಸಹಾಯ", "ಅಪಾಯ"])) {
+    if (isKannada) {
+      return [
+        "ತುರ್ತು ಪರಿಶೀಲನಾ ಪಟ್ಟಿ:",
+        "1. ಸುರಕ್ಷಿತವಾಗಿದ್ದರೆ ಜನರನ್ನು ಅಪಾಯದಿಂದ ದೂರ ಸರಿಸಿ.",
+        "2. ವೈದ್ಯಕೀಯ ಸಹಾಯಕ್ಕೆ 108 ಅಥವಾ ಪೊಲೀಸ್ ಸಹಾಯಕ್ಕೆ 100 ಕರೆ ಮಾಡಿ.",
+        "3. ನಿಮ್ಮ ಗ್ರಾಮ, ಗುರುತು ಸ್ಥಳ, ಮತ್ತು ಆ್ಯಪ್‌ನಲ್ಲಿ ಕಾಣುವ GPS ಮಾಹಿತಿ ಹಂಚಿ.",
+        "4. ತುರ್ತು ಕರೆ ಮಾಡಿದ ನಂತರ report form ಬಳಸಿ ಸಮಸ್ಯೆ ದಾಖಲಿಸಿ."
+      ].join("\n");
+    }
     return [
       "Quick emergency checklist:",
       "1. Move people away from immediate danger if it is safe.",
@@ -625,20 +643,29 @@ function localAssistantReply(message) {
     ].join("\n");
   }
 
-  if (lowerMessage.includes("report") || lowerMessage.includes("complaint") || lowerMessage.includes("issue")) {
+  if (hasAny(["report", "complaint", "issue", "ದೂರು", "ಸಮಸ್ಯೆ", "ರಿಪೋರ್ಟ್"])) {
+    if (isKannada) {
+      return "File report ವಿಭಾಗದಲ್ಲಿ ಗ್ರಾಮ ಅಥವಾ ಗುರುತು ಸ್ಥಳವನ್ನು ಬರೆಯಿರಿ, ಸಮಸ್ಯೆಯ ತುರ್ತುತನ ಮತ್ತು ಯಾರಿಗೆ ಪರಿಣಾಮ ಆಗಿದೆ ಎಂದು ವಿವರಿಸಿ, ನಂತರ submit ಮಾಡಿ. GPS ಲಭ್ಯವಿದ್ದರೆ ಆ್ಯಪ್ ಅದನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸುತ್ತದೆ.";
+    }
     return "Use the File report section, enter the village or landmark, describe who is affected and how urgent it is, then submit. If GPS is available, the app attaches it automatically.";
   }
 
-  if (lowerMessage.includes("soil") || lowerMessage.includes("crop") || lowerMessage.includes("farm") || lowerMessage.includes("water") || lowerMessage.includes("irrigation")) {
+  if (hasAny(["soil", "crop", "farm", "water", "irrigation", "ಮಣ್ಣು", "ಬೆಳೆ", "ಕೃಷಿ", "ನೀರು", "ನೀರಾವರಿ"])) {
     const soil = state.activeSoil;
     const advice = soilRules[soil];
     if (advice) {
+      if (isKannada) {
+        return `${soil} ಮಣ್ಣಿಗೆ: ಶಿಫಾರಸಾದ ಬೆಳೆಗಳು ${advice.crops}, ಗೊಬ್ಬರ ಸಹಾಯ ${advice.fertilizer}, ಮತ್ತು ನೀರಿನ ಸಲಹೆ: ${advice.water}`;
+      }
       return `For ${soil} soil: suggested crops are ${advice.crops}, fertilizer support is ${advice.fertilizer}, and water guidance is: ${advice.water}`;
+    }
+    if (isKannada) {
+      return "ಮೊದಲು soil type ಆಯ್ಕೆ ಮಾಡಿ. ನೀರು ಕಡಿಮೆ ಇದ್ದರೆ drip irrigation, mulching, ಬೆಳಗಿನ ನೀರಾವರಿ, ಮತ್ತು ನಿಮ್ಮ ಮಣ್ಣಿಗೆ ಸರಿಯಾದ ಕಡಿಮೆ ಅವಧಿಯ ಬೆಳೆಗಳನ್ನು ಆರಿಸಿ.";
     }
     return "Choose your soil type first. For low water, prefer drip irrigation, mulching, early morning watering, and short-cycle crops suited to your soil.";
   }
 
-  if (state.language === "kn") {
+  if (isKannada) {
     return "ನಾನು ಈಗ offline ಸಹಾಯಕವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ. ಪೊಲೀಸ್, ಕಾನೂನು ಸಹಾಯ, ಆಸ್ಪತ್ರೆ, ಬೆಳೆ, ಮಣ್ಣು, ತುರ್ತು ಪರಿಸ್ಥಿತಿ ಅಥವಾ ದೂರು ಬಗ್ಗೆ ಕೇಳಿ.";
   }
 
