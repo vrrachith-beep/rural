@@ -30,7 +30,8 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          cat > config.js <<EOF
+          if [ -n "${GEMINI_API_KEY}" ]; then
+            cat > config.js <<EOF
           window.APP_CONFIG = {
             googleMapsApiKey: "",
             youtubeApiKey: "",
@@ -38,6 +39,7 @@ jobs:
             apiBaseUrl: "https://asia-south1-cleancredit-live.cloudfunctions.net/api"
           };
           EOF
+          fi
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
