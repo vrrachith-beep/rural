@@ -1,4 +1,5 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
@@ -6,10 +7,10 @@ const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 initializeApp();
 
 const db = getFirestore();
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 const MODEL = "gemini-2.5-flash";
 
-exports.api = onRequest({ cors: true, region: "asia-south1" }, async (req, res) => {
+exports.api = onRequest({ cors: true, region: "asia-south1", secrets: [GEMINI_API_KEY] }, async (req, res) => {
   try {
     const route = normalizeRoute(req.path || req.url || "/");
 
@@ -66,7 +67,8 @@ async function handleReport(req, res) {
 }
 
 async function handleChat(req, res) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === "PASTE_GEMINI_API_KEY_HERE") {
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
     res.status(503).json({ error: "Gemini backend key is not configured on the server." });
     return;
   }
@@ -96,7 +98,7 @@ async function handleChat(req, res) {
   const prompt = buildGeminiPrompt({ history, contextParts, message, language });
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
     {
       method: "POST",
       headers: {
@@ -159,7 +161,8 @@ async function handleChat(req, res) {
 }
 
 async function handleTts(req, res) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === "PASTE_GEMINI_API_KEY_HERE") {
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
     res.status(503).json({ error: "Gemini backend key is not configured on the server." });
     return;
   }
@@ -178,7 +181,7 @@ async function handleTts(req, res) {
     : `Read this naturally in English: ${text}`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(geminiApiKey)}`,
     {
       method: "POST",
       headers: {
@@ -256,6 +259,10 @@ function sanitizeGps(value) {
 function normalizeRoute(pathname) {
   const cleanPath = pathname.split("?")[0];
   return cleanPath.startsWith("/api/") ? cleanPath.slice(4) : cleanPath;
+}
+
+function getGeminiApiKey() {
+  return GEMINI_API_KEY.value() || process.env.GEMINI_API_KEY || "";
 }
 
 async function loadRecentChatHistory(sessionId) {
