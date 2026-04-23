@@ -1,0 +1,735 @@
+const config = window.APP_CONFIG || {};
+
+const GOOGLE_MAPS_API_KEY = config.googleMapsApiKey || "";
+const YOUTUBE_API_KEY = config.youtubeApiKey || "";
+const API_BASE_URL = config.apiBaseUrl || "/api";
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const state = {
+  map: null,
+  service: null,
+  markers: [],
+  userMarker: null,
+  watchId: null,
+  userLocation: null,
+  lastPlacesLookupLocation: null,
+  activeSoil: "",
+  chatSessionId: crypto.randomUUID(),
+  previousResponseId: null,
+  language: "en",
+  lastAssistantReply: "",
+  recognition: null,
+  isListening: false
+};
+
+const translations = {
+  en: {
+    eyebrow: "Rural support system",
+    brandTitle: "Rural Resilience Hub",
+    heroCopy: "Real-time GPS support, community reporting, soil guidance, and a built-in AI helper for day-to-day questions.",
+    refreshGps: "Refresh GPS",
+    liveSupportMap: "Live support map",
+    nearbyLawHealth: "Nearby law and health access",
+    waitingGps: "Waiting for live GPS permission...",
+    mapFallback: "Map will activate after you add a Google Maps API key.",
+    mode: "Mode",
+    smartTracking: "Smart tracking",
+    movementRefresh: "Movement refresh",
+    movementThreshold: "250m threshold",
+    fallback: "Fallback",
+    localEmergencyCards: "Local emergency cards",
+    aiAssistant: "AI assistant",
+    fieldCompanion: "Field companion",
+    chatSubtitle: "Ask about crops, emergencies, reports, or what help is nearby.",
+    askAssistant: "Ask the assistant",
+    chatPlaceholder: "Example: I am on black soil and nearby water is low, what should I plant?",
+    chatStatusReady: "Chatbot uses the backend function and a Gemini API key.",
+    mic: "Mic",
+    speakReply: "Speak reply",
+    send: "Send",
+    quickActions: "Quick actions",
+    fileReport: "File report",
+    openFarmGuide: "Open farm guide",
+    askAboutArea: "Ask about my area",
+    emergencyChecklist: "Emergency checklist",
+    safety: "Safety",
+    lawRescue: "Law & rescue access",
+    care: "Care",
+    healthFacilities: "Health facilities",
+    communityAccountability: "Community accountability",
+    submitRealReport: "Submit a real report",
+    reportsToFirestore: "Reports go to Firestore through a Firebase backend function.",
+    issueType: "Issue type",
+    villageLandmark: "Village / landmark",
+    details: "Details",
+    issuePlaceholder: "Main road near bus stand",
+    detailsPlaceholder: "Describe the issue, urgency, and who is affected.",
+    liveGpsAttached: "Live GPS is attached when available.",
+    submitReport: "Submit report",
+    farmingIntelligence: "Farming intelligence",
+    soilBasedGuidance: "Soil-based guidance",
+    soilType: "Soil type",
+    soilRecommendations: "Soil recommendations will appear here.",
+    learningLayer: "Learning layer",
+    recommendedVideos: "Recommended irrigation videos",
+    youtubeHint: "Uses YouTube when a key is available, otherwise shows targeted search shortcuts.",
+    online: "Online",
+    offlineMode: "Offline mode",
+    fallbackContacts: "Fallback contacts",
+    liveGpsMode: "Live GPS",
+    assistantGreeting: "I can help with farming decisions, emergency preparedness, local support guidance, and using the reporting tool.",
+    thinking: "Thinking...",
+    assistantReady: "Assistant is ready.",
+    assistantError: "Assistant hit an error.",
+    listening: "Listening...",
+    speechUnavailable: "Voice input is not supported in this browser.",
+    noReplyToSpeak: "No assistant reply is available to speak yet.",
+    speaking: "Speaking reply...",
+    voiceReady: "Voice reply finished.",
+    voiceError: "Voice playback failed.",
+    reportSubmitting: "Submitting report...",
+    reportSaved: "Report saved to Firebase successfully.",
+    reportValidation: "Please add both a location and issue details.",
+    reportFailed: "Report submission failed.",
+    loadingVideos: "Loading irrigation tutorials...",
+    videoUnavailable: "Video preview unavailable without a YouTube API key.",
+    openYoutube: "Open YouTube search",
+    soilDefault: "Soil recommendations will appear here.",
+    locationPromptWithGps: "Based on my live location ({lat}, {lng}), what help should I check first nearby?",
+    locationPromptNoGps: "How should I use this app to find nearby police, legal aid, and health support?",
+    emergencyPrompt: "Give me a short emergency checklist for a rural family facing a sudden medical or safety issue."
+  },
+  kn: {
+    eyebrow: "ಗ್ರಾಮೀಣ ಸಹಾಯ ವ್ಯವಸ್ಥೆ",
+    brandTitle: "ರೂರಲ್ ರೆಸಿಲಿಯನ್ಸ್ ಹಬ್",
+    heroCopy: "ರಿಯಲ್-ಟೈಮ್ ಜಿಪಿಎಸ್ ಸಹಾಯ, ಸಮುದಾಯ ದೂರುಗಳು, ಮಣ್ಣಿನ ಮಾರ್ಗದರ್ಶನ ಮತ್ತು ದಿನನಿತ್ಯದ ಪ್ರಶ್ನೆಗಳಿಗೆ AI ಸಹಾಯಕ.",
+    refreshGps: "GPS ನವೀಕರಿಸಿ",
+    liveSupportMap: "ಲೈವ್ ಸಹಾಯ ನಕ್ಷೆ",
+    nearbyLawHealth: "ಹತ್ತಿರದ ಕಾನೂನು ಮತ್ತು ಆರೋಗ್ಯ ಸಹಾಯ",
+    waitingGps: "ಲೈವ್ GPS ಅನುಮತಿಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
+    mapFallback: "Google Maps API ಕೀ ಸೇರಿಸಿದ ನಂತರ ನಕ್ಷೆ ಸಕ್ರಿಯವಾಗುತ್ತದೆ.",
+    mode: "ಮೋಡ್",
+    smartTracking: "ಸ್ಮಾರ್ಟ್ ಟ್ರ್ಯಾಕಿಂಗ್",
+    movementRefresh: "ಚಲನೆಯ ನವೀಕರಣ",
+    movementThreshold: "250 ಮೀ ಮಿತಿ",
+    fallback: "ಪರ್ಯಾಯ",
+    localEmergencyCards: "ಸ್ಥಳೀಯ ತುರ್ತು ಕಾರ್ಡ್‌ಗಳು",
+    aiAssistant: "AI ಸಹಾಯಕ",
+    fieldCompanion: "ಕ್ಷೇತ್ರ ಸಹಾಯಕ",
+    chatSubtitle: "ಬೆಳೆಗಳು, ತುರ್ತು ಪರಿಸ್ಥಿತಿ, ದೂರುಗಳು ಅಥವಾ ಹತ್ತಿರದ ಸಹಾಯ ಬಗ್ಗೆ ಕೇಳಿ.",
+    askAssistant: "ಸಹಾಯಕನನ್ನು ಕೇಳಿ",
+    chatPlaceholder: "ಉದಾಹರಣೆ: ನಾನು ಕಪ್ಪು ಮಣ್ಣಿನಲ್ಲಿ ಇದ್ದೇನೆ ಮತ್ತು ನೀರು ಕಡಿಮೆ ಇದೆ, ಯಾವ ಬೆಳೆ ಬೆಳೆಸಲಿ?",
+    chatStatusReady: "ಚಾಟ್‌ಬಾಟ್ ಬ್ಯಾಕೆಂಡ್ ಫಂಕ್ಷನ್ ಮತ್ತು Gemini API ಕೀ ಬಳಸುತ್ತದೆ.",
+    mic: "ಮೈಕ್",
+    speakReply: "ಉತ್ತರವನ್ನು ಕೇಳಿ",
+    send: "ಕಳುಹಿಸಿ",
+    quickActions: "ತ್ವರಿತ ಕ್ರಮಗಳು",
+    fileReport: "ದೂರು ಸಲ್ಲಿಸಿ",
+    openFarmGuide: "ಕೃಷಿ ಮಾರ್ಗದರ್ಶಿ ತೆರೆಯಿರಿ",
+    askAboutArea: "ನನ್ನ ಪ್ರದೇಶದ ಬಗ್ಗೆ ಕೇಳಿ",
+    emergencyChecklist: "ತುರ್ತು ಪರಿಶೀಲನಾ ಪಟ್ಟಿ",
+    safety: "ಭದ್ರತೆ",
+    lawRescue: "ಕಾನೂನು ಮತ್ತು ರಕ್ಷಣಾ ಸಹಾಯ",
+    care: "ಆರೈಕೆ",
+    healthFacilities: "ಆರೋಗ್ಯ ಕೇಂದ್ರಗಳು",
+    communityAccountability: "ಸಮುದಾಯ ಜವಾಬ್ದಾರಿ",
+    submitRealReport: "ನಿಜವಾದ ದೂರು ಸಲ್ಲಿಸಿ",
+    reportsToFirestore: "ದೂರುಗಳು Firebase ಬ್ಯಾಕೆಂಡ್ ಮೂಲಕ Firestore ಗೆ ಹೋಗುತ್ತವೆ.",
+    issueType: "ಸಮಸ್ಯೆಯ ವಿಧ",
+    villageLandmark: "ಗ್ರಾಮ / ಗುರುತು ಸ್ಥಳ",
+    details: "ವಿವರಗಳು",
+    issuePlaceholder: "ಬಸ್ ನಿಲ್ದಾಣದ ಹತ್ತಿರ ಮುಖ್ಯ ರಸ್ತೆ",
+    detailsPlaceholder: "ಸಮಸ್ಯೆ, ತುರ್ತುಸ್ಥಿತಿ ಮತ್ತು ಯಾರು ಪ್ರಭಾವಿತರಾಗಿದ್ದಾರೆ ಎಂಬುದನ್ನು ವಿವರಿಸಿ.",
+    liveGpsAttached: "ಲಭ್ಯವಿದ್ದರೆ ಲೈವ್ GPS ಸೇರಿಸಲಾಗುತ್ತದೆ.",
+    submitReport: "ದೂರು ಸಲ್ಲಿಸಿ",
+    farmingIntelligence: "ಕೃಷಿ ಮಾರ್ಗದರ್ಶನ",
+    soilBasedGuidance: "ಮಣ್ಣಿನ ಆಧಾರಿತ ಸಲಹೆ",
+    soilType: "ಮಣ್ಣಿನ ವಿಧ",
+    soilRecommendations: "ಮಣ್ಣಿನ ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
+    learningLayer: "ಅಭ್ಯಾಸ ವಿಭಾಗ",
+    recommendedVideos: "ಶಿಫಾರಸಾದ ನೀರಾವರಿ ವಿಡಿಯೋಗಳು",
+    youtubeHint: "ಕೀ ಇದ್ದರೆ YouTube ಬಳಸುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ಹುಡುಕಾಟ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳನ್ನು ತೋರಿಸುತ್ತದೆ.",
+    online: "ಆನ್‌ಲೈನ್",
+    offlineMode: "ಆಫ್‌ಲೈನ್ ಮೋಡ್",
+    fallbackContacts: "ಪರ್ಯಾಯ ಸಂಪರ್ಕಗಳು",
+    liveGpsMode: "ಲೈವ್ GPS",
+    assistantGreeting: "ನಾನು ಕೃಷಿ ನಿರ್ಧಾರಗಳು, ತುರ್ತು ಸಿದ್ಧತೆ, ಸ್ಥಳೀಯ ಸಹಾಯ ಮತ್ತು ದೂರು ಸಲ್ಲಿಸುವ ವಿಧಾನದಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಹುದು.",
+    thinking: "ಯೋಚಿಸುತ್ತಿದೆ...",
+    assistantReady: "ಸಹಾಯಕ ಸಿದ್ಧವಾಗಿದೆ.",
+    assistantError: "ಸಹಾಯಕನಲ್ಲಿ ದೋಷ ಉಂಟಾಗಿದೆ.",
+    listening: "ಕೇಳುತ್ತಿದೆ...",
+    speechUnavailable: "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಇನ್‌ಪುಟ್ ಬೆಂಬಲಿತವಿಲ್ಲ.",
+    noReplyToSpeak: "ಈಗ ಕೇಳಿಸಲು ಸಹಾಯಕ ಉತ್ತರ ಲಭ್ಯವಿಲ್ಲ.",
+    speaking: "ಉತ್ತರವನ್ನು ಓದುತ್ತಿದೆ...",
+    voiceReady: "ಧ್ವನಿ ಉತ್ತರ ಮುಗಿದಿದೆ.",
+    voiceError: "ಧ್ವನಿ ಪ್ಲೇಬ್ಯಾಕ್ ವಿಫಲವಾಗಿದೆ.",
+    reportSubmitting: "ದೂರು ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...",
+    reportSaved: "ದೂರು Firebase ಗೆ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ.",
+    reportValidation: "ದಯವಿಟ್ಟು ಸ್ಥಳ ಮತ್ತು ಸಮಸ್ಯೆಯ ವಿವರ ಎರಡನ್ನೂ ಸೇರಿಸಿ.",
+    reportFailed: "ದೂರು ಸಲ್ಲಿಕೆ ವಿಫಲವಾಗಿದೆ.",
+    loadingVideos: "ನೀರಾವರಿ ವಿಡಿಯೋಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...",
+    videoUnavailable: "YouTube API ಕೀ ಇಲ್ಲದೆ ವಿಡಿಯೋ ಪೂರ್ವದೃಶ್ಯ ಲಭ್ಯವಿಲ್ಲ.",
+    openYoutube: "YouTube ಹುಡುಕಾಟ ತೆರೆಯಿರಿ",
+    soilDefault: "ಮಣ್ಣಿನ ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
+    locationPromptWithGps: "ನನ್ನ ಲೈವ್ ಸ್ಥಳ ({lat}, {lng}) ಆಧರಿಸಿ, ಹತ್ತಿರದಲ್ಲಿ ನಾನು ಮೊದಲು ಯಾವ ಸಹಾಯವನ್ನು ನೋಡಬೇಕು?",
+    locationPromptNoGps: "ಹತ್ತಿರದ ಪೊಲೀಸ್, ಕಾನೂನು ಸಹಾಯ ಮತ್ತು ಆರೋಗ್ಯ ಸಹಾಯ ಹುಡುಕಲು ಈ ಅಪ್ ಅನ್ನು ಹೇಗೆ ಬಳಸಬೇಕು?",
+    emergencyPrompt: "ಹಠಾತ್ ವೈದ್ಯಕೀಯ ಅಥವಾ ಭದ್ರತಾ ಸಮಸ್ಯೆ ಎದುರಿಸುತ್ತಿರುವ ಗ್ರಾಮೀಣ ಕುಟುಂಬಕ್ಕೆ ಚಿಕ್ಕ ತುರ್ತು ಪರಿಶೀಲನಾ ಪಟ್ಟಿಯನ್ನು ಕೊಡಿ."
+  }
+};
+
+const soilRules = {
+  Red: {
+    fertilizer: "Urea + Potash",
+    crops: "Ragi / Groundnut",
+    water: "Use short, frequent irrigation bursts to avoid runoff."
+  },
+  Black: {
+    fertilizer: "DAP + Zinc",
+    crops: "Cotton / Soybean",
+    water: "Deep irrigation in wider intervals works well because black soil holds moisture."
+  },
+  Loamy: {
+    fertilizer: "NPK 19-19-19",
+    crops: "Vegetables / Fruit",
+    water: "Balanced drip or furrow irrigation usually performs best."
+  },
+  Sandy: {
+    fertilizer: "Compost + NPK support",
+    crops: "Millet / Watermelon",
+    water: "Use mulching and frequent light irrigation because sandy soil drains fast."
+  }
+};
+
+const localEmergencyContacts = {
+  type: "FeatureCollection",
+  features: [
+    { type: "Feature", properties: { category: "Police Station", name: "Demo Rural Police Outpost", phone: "100", distance: "1.2 km" }, geometry: { type: "Point", coordinates: [77.5946, 12.9716] } },
+    { type: "Feature", properties: { category: "District Court", name: "Demo District Legal Aid Desk", phone: "15100", distance: "3.8 km" }, geometry: { type: "Point", coordinates: [77.6046, 12.9816] } },
+    { type: "Feature", properties: { category: "Government Hospital", name: "Demo Government Hospital", phone: "108", distance: "2.4 km" }, geometry: { type: "Point", coordinates: [77.5846, 12.9616] } },
+    { type: "Feature", properties: { category: "Medical Diagnostic Center", name: "Demo Diagnostic Center", phone: "104", distance: "4.1 km" }, geometry: { type: "Point", coordinates: [77.5746, 12.9516] } }
+  ]
+};
+
+function hasRealKey(key, placeholder) {
+  return Boolean(key) && key !== placeholder && key.length > placeholder.length;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setIndicator(mode, message) {
+  const indicator = document.getElementById("offlineIndicator");
+  indicator.textContent = mode;
+  indicator.style.color = mode === "Offline mode" ? "#ffb4b4" : "#b4ffd2";
+  indicator.style.borderColor = mode === "Offline mode" ? "rgba(255, 107, 107, 0.3)" : "rgba(125, 252, 192, 0.3)";
+  document.getElementById("locationText").textContent = message;
+}
+
+function setTrackingMode(text) {
+  document.getElementById("trackingMode").textContent = text;
+}
+
+function addChatMessage(role, text) {
+  const stream = document.getElementById("chatMessages");
+  const bubble = document.createElement("article");
+  bubble.className = `chat-bubble ${role === "user" ? "chat-bubble-user" : ""}`;
+  bubble.innerHTML = `<strong>${role === "user" ? "You" : "Assistant"}</strong><div>${escapeHtml(text).replaceAll("\n", "<br>")}</div>`;
+  stream.appendChild(bubble);
+  stream.scrollTop = stream.scrollHeight;
+}
+
+function setMicButtonState() {
+  const micBtn = document.getElementById("micBtn");
+  if (!micBtn) {
+    return;
+  }
+  micBtn.textContent = state.isListening ? `${t("mic")}...` : t("mic");
+}
+
+function setChatStatus(message) {
+  document.getElementById("chatStatus").textContent = message;
+}
+
+function setReportStatus(message, isError = false) {
+  const node = document.getElementById("reportStatus");
+  node.textContent = message;
+  node.style.color = isError ? "#ffb4b4" : "#b4ffd2";
+}
+
+function manualOverride(reason) {
+  setIndicator(t("offlineMode"), reason || "Using local emergency contacts.");
+  setTrackingMode(t("fallbackContacts"));
+  const places = localEmergencyContacts.features.map((feature) => {
+    const [lng, lat] = feature.geometry.coordinates;
+    return {
+      category: feature.properties.category,
+      name: feature.properties.name,
+      phone: feature.properties.phone,
+      distanceText: feature.properties.distance,
+      location: { lat, lng }
+    };
+  });
+  renderServiceCards(places);
+}
+
+function loadGoogleMaps() {
+  if (!hasRealKey(GOOGLE_MAPS_API_KEY, "GOOGLE_MAPS_API_KEY")) {
+    manualOverride("Google Maps key missing. Showing local emergency cards.");
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+  script.async = true;
+  script.onerror = () => manualOverride("Google Maps failed to load. Showing local emergency cards.");
+  document.head.appendChild(script);
+}
+
+window.initMap = function initMap() {
+  const defaultCenter = { lat: 20.5937, lng: 78.9629 };
+  state.map = new google.maps.Map(document.getElementById("map"), {
+    center: defaultCenter,
+    zoom: 5,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false
+  });
+  state.service = new google.maps.places.PlacesService(state.map);
+  setTrackingMode("Live GPS");
+  applyTranslations();
+  startLocationTracking();
+};
+
+function startLocationTracking() {
+  if (!navigator.geolocation) {
+    manualOverride("Geolocation unsupported. Showing local emergency cards.");
+    return;
+  }
+
+  if (state.watchId !== null) {
+    navigator.geolocation.clearWatch(state.watchId);
+  }
+
+  state.watchId = navigator.geolocation.watchPosition(
+    (position) => updateUserLocation(position),
+    () => manualOverride("Location permission blocked. Showing local emergency cards."),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
+  );
+}
+
+function updateUserLocation(position) {
+  const nextLocation = {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude
+  };
+
+  const shouldRefreshPlaces =
+    !state.lastPlacesLookupLocation ||
+    distanceKm(state.lastPlacesLookupLocation, nextLocation) >= 0.25;
+
+  state.userLocation = nextLocation;
+  setIndicator(t("online"), `Live GPS: ${nextLocation.lat.toFixed(4)}, ${nextLocation.lng.toFixed(4)}`);
+
+  if (!state.map || !window.google) {
+    return;
+  }
+
+  state.map.setCenter(nextLocation);
+  state.map.setZoom(13);
+
+  if (!state.userMarker) {
+    state.userMarker = new google.maps.Marker({
+      position: nextLocation,
+      map: state.map,
+      title: "You are here"
+    });
+  } else {
+    state.userMarker.setPosition(nextLocation);
+  }
+
+  if (shouldRefreshPlaces) {
+    state.lastPlacesLookupLocation = nextLocation;
+    findNearbyServices();
+  }
+}
+
+function findNearbyServices() {
+  if (!state.service || !state.userLocation) {
+    manualOverride("Places service unavailable. Showing local emergency cards.");
+    return;
+  }
+
+  const searches = [
+    "Police Station",
+    "District Court",
+    "Government Hospital",
+    "Medical Diagnostic Center"
+  ];
+
+  Promise.all(searches.map(searchPlaces))
+    .then((groups) => renderServiceCards(groups.flat()))
+    .catch(() => manualOverride("Places lookup failed. Showing local emergency cards."));
+}
+
+function searchPlaces(category) {
+  return new Promise((resolve, reject) => {
+    state.service.textSearch({
+      query: category,
+      location: state.userLocation,
+      radius: 25000
+    }, (results, status) => {
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+        reject(status);
+        return;
+      }
+
+      resolve(results.slice(0, 3).map((place) => {
+        const loc = place.geometry.location;
+        return {
+          category,
+          name: place.name,
+          phone: "",
+          distanceText: formatDistance(distanceKm(state.userLocation, { lat: loc.lat(), lng: loc.lng() })),
+          location: { lat: loc.lat(), lng: loc.lng() }
+        };
+      }));
+    });
+  });
+}
+
+function distanceKm(from, to) {
+  const earthKm = 6371;
+  const dLat = degreesToRadians(to.lat - from.lat);
+  const dLng = degreesToRadians(to.lng - from.lng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(degreesToRadians(from.lat)) * Math.cos(degreesToRadians(to.lat)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function degreesToRadians(value) {
+  return value * Math.PI / 180;
+}
+
+function formatDistance(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
+
+function renderServiceCards(places) {
+  const law = places.filter((place) => place.category.includes("Police") || place.category.includes("Court"));
+  const health = places.filter((place) => place.category.includes("Hospital") || place.category.includes("Diagnostic"));
+
+  document.getElementById("lawCards").innerHTML = law.map(cardTemplate).join("");
+  document.getElementById("healthCards").innerHTML = health.map(cardTemplate).join("");
+
+  if (state.map && window.google) {
+    state.markers.forEach((marker) => marker.setMap(null));
+    state.markers = places.map((place) => new google.maps.Marker({
+      position: place.location,
+      map: state.map,
+      title: place.name
+    }));
+  }
+}
+
+function cardTemplate(place) {
+  const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`;
+  const tel = place.phone ? `tel:${place.phone}` : "tel:108";
+  return `
+    <article class="service-card">
+      <p class="panel-kicker">${escapeHtml(place.category)}</p>
+      <h3>${escapeHtml(place.name)}</h3>
+      <p class="service-meta">${escapeHtml(place.distanceText)}</p>
+      <div class="service-actions">
+        <a class="pill-action" href="${tel}">Call</a>
+        <a class="pill-action pill-action-accent" href="${navUrl}" target="_blank" rel="noopener">Navigate</a>
+      </div>
+    </article>
+  `;
+}
+
+function renderSoilAdvice(soil) {
+  state.activeSoil = soil;
+  const node = document.getElementById("soilAdvice");
+  const advice = soilRules[soil];
+
+  if (!advice) {
+    node.textContent = "Soil recommendations will appear here.";
+    node.textContent = t("soilDefault");
+    document.getElementById("videoGrid").innerHTML = "";
+    return;
+  }
+
+  node.innerHTML = `
+    <p><strong>Recommended fertilizer:</strong> ${escapeHtml(advice.fertilizer)}</p>
+    <p><strong>Suggested crops:</strong> ${escapeHtml(advice.crops)}</p>
+    <p><strong>Water note:</strong> ${escapeHtml(advice.water)}</p>
+  `;
+
+  loadIrrigationVideos(soil);
+}
+
+async function loadIrrigationVideos(soil) {
+  const grid = document.getElementById("videoGrid");
+  grid.innerHTML = `<article class="video-card"><div class="video-placeholder">${t("loadingVideos")}</div></article>`;
+
+  if (!hasRealKey(YOUTUBE_API_KEY, "YOUTUBE_API_KEY")) {
+    renderFallbackVideos(soil);
+    return;
+  }
+
+  try {
+    const query = encodeURIComponent(`Irrigation techniques for ${soil} soil`);
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=2&q=${query}&key=${YOUTUBE_API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("YouTube request failed");
+    }
+
+    const data = await response.json();
+    const videos = (data.items || []).map((item) => ({
+      title: item.snippet.title,
+      id: item.id.videoId
+    }));
+    renderVideos(videos);
+  } catch {
+    renderFallbackVideos(soil);
+  }
+}
+
+function renderFallbackVideos(soil) {
+  renderVideos([
+    {
+      title: `Irrigation techniques for ${soil} soil`,
+      searchQuery: `Irrigation techniques for ${soil} soil`
+    },
+    {
+      title: `Water saving farming methods for ${soil} soil`,
+      searchQuery: `Water saving farming methods for ${soil} soil`
+    }
+  ]);
+}
+
+function renderVideos(videos) {
+  document.getElementById("videoGrid").innerHTML = videos.map((video) => `
+    <article class="video-card">
+      ${video.id
+        ? `<iframe class="video-frame" src="https://www.youtube.com/embed/${escapeHtml(video.id)}" title="${escapeHtml(video.title)}" loading="lazy" allowfullscreen></iframe>`
+        : `<div class="video-placeholder">${t("videoUnavailable")}</div>`
+      }
+      <h3>${escapeHtml(video.title)}</h3>
+      ${video.searchQuery
+        ? `<a class="link-button" href="https://www.youtube.com/results?search_query=${encodeURIComponent(video.searchQuery)}" target="_blank" rel="noopener">${t("openYoutube")}</a>`
+        : ""
+      }
+    </article>
+  `).join("");
+}
+
+async function submitReport(event) {
+  event.preventDefault();
+
+  const payload = {
+    type: document.getElementById("issueType").value.trim(),
+    locationLabel: document.getElementById("issueLocation").value.trim(),
+    details: document.getElementById("issueDetails").value.trim(),
+    gps: state.userLocation
+  };
+
+  if (!payload.locationLabel || !payload.details) {
+    setReportStatus(t("reportValidation"), true);
+    return;
+  }
+
+  setReportStatus(t("reportSubmitting"));
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "Report submission failed");
+    }
+
+    event.target.reset();
+    setReportStatus(t("reportSaved"));
+  } catch (error) {
+    setReportStatus(error.message || t("reportFailed"), true);
+  }
+}
+
+async function submitChatMessage(event) {
+  event.preventDefault();
+  const input = document.getElementById("chatInput");
+  const message = input.value.trim();
+  if (!message) {
+    return;
+  }
+
+  addChatMessage("user", message);
+  input.value = "";
+  setChatStatus(t("thinking"));
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: state.chatSessionId,
+        previousResponseId: state.previousResponseId,
+        message,
+        context: {
+          soil: state.activeSoil,
+          gps: state.userLocation,
+          language: state.language
+        }
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "Chat request failed");
+    }
+
+    state.previousResponseId = result.responseId || null;
+    state.lastAssistantReply = result.reply;
+    addChatMessage("assistant", result.reply);
+    setChatStatus(t("assistantReady"));
+  } catch (error) {
+    addChatMessage("assistant", error.message || "The assistant is unavailable right now.");
+    setChatStatus(t("assistantError"));
+  }
+}
+
+function promptChat(message) {
+  const input = document.getElementById("chatInput");
+  input.value = message;
+  input.focus();
+}
+
+function startVoiceInput() {
+  if (!SpeechRecognition) {
+    setChatStatus(t("speechUnavailable"));
+    return;
+  }
+
+  if (!state.recognition) {
+    state.recognition = new SpeechRecognition();
+    state.recognition.lang = state.language === "kn" ? "kn-IN" : "en-IN";
+    state.recognition.interimResults = false;
+    state.recognition.maxAlternatives = 1;
+    state.recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      if (transcript) {
+        document.getElementById("chatInput").value = transcript;
+      }
+    };
+    state.recognition.onend = () => {
+      state.isListening = false;
+      setMicButtonState();
+      setChatStatus(t("chatStatusReady"));
+    };
+    state.recognition.onerror = () => {
+      state.isListening = false;
+      setMicButtonState();
+      setChatStatus(t("speechUnavailable"));
+    };
+  }
+
+  state.recognition.lang = state.language === "kn" ? "kn-IN" : "en-IN";
+  state.isListening = true;
+  setMicButtonState();
+  setChatStatus(t("listening"));
+  state.recognition.start();
+}
+
+async function speakAssistantReply() {
+  if (!state.lastAssistantReply) {
+    setChatStatus(t("noReplyToSpeak"));
+    return;
+  }
+
+  setChatStatus(t("speaking"));
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: state.lastAssistantReply,
+        language: state.language
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || t("voiceError"));
+    }
+
+    const audio = new Audio(`data:${result.mimeType};base64,${result.audioBase64}`);
+    audio.onended = () => setChatStatus(t("voiceReady"));
+    await audio.play();
+  } catch (error) {
+    setChatStatus(error.message || t("voiceError"));
+  }
+}
+
+function bindEvents() {
+  document.getElementById("languageSelect").addEventListener("change", (event) => {
+    state.language = event.target.value;
+    applyTranslations();
+  });
+  document.getElementById("micBtn").addEventListener("click", startVoiceInput);
+  document.getElementById("speakBtn").addEventListener("click", speakAssistantReply);
+  document.getElementById("locateBtn").addEventListener("click", startLocationTracking);
+  document.getElementById("soilSelect").addEventListener("change", (event) => renderSoilAdvice(event.target.value));
+  document.getElementById("reportForm").addEventListener("submit", submitReport);
+  document.getElementById("chatForm").addEventListener("submit", submitChatMessage);
+  document.getElementById("chatPromptLocation").addEventListener("click", () => {
+    const locationPrompt = state.userLocation
+      ? t("locationPromptWithGps")
+        .replace("{lat}", state.userLocation.lat.toFixed(4))
+        .replace("{lng}", state.userLocation.lng.toFixed(4))
+      : t("locationPromptNoGps");
+    promptChat(locationPrompt);
+  });
+  document.getElementById("chatPromptEmergency").addEventListener("click", () => {
+    promptChat(t("emergencyPrompt"));
+  });
+
+  window.addEventListener("offline", () => manualOverride("Device is offline. Showing local emergency cards."));
+  window.addEventListener("online", () => setIndicator(t("online"), "Connection restored. Tap refresh GPS if the location looks stale."));
+}
+
+function boot() {
+  applyTranslations();
+  bindEvents();
+  addChatMessage("assistant", t("assistantGreeting"));
+  loadGoogleMaps();
+}
+
+function t(key) {
+  return translations[state.language]?.[key] || translations.en[key] || key;
+}
+
+function applyTranslations() {
+  document.documentElement.lang = state.language === "kn" ? "kn" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.dataset.i18n;
+    node.textContent = t(key);
+  });
+  document.getElementById("chatInput").placeholder = t("chatPlaceholder");
+  document.getElementById("issueLocation").placeholder = t("issuePlaceholder");
+  document.getElementById("issueDetails").placeholder = t("detailsPlaceholder");
+  setMicButtonState();
+}
+
+boot();

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rural Resilience Hub</title>
+  <meta
+    name="description"
+    content="A dark, mobile-friendly rural support dashboard with live location, report filing, farming help, and an AI assistant."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow" data-i18n="eyebrow">Rural support system</p>
+        <h1 data-i18n="brandTitle">Rural Resilience Hub</h1>
+        <p class="hero-copy" data-i18n="heroCopy">
+          Real-time GPS support, community reporting, soil guidance, and a built-in AI helper for day-to-day questions.
+        </p>
+      </div>
+      <div class="status-stack">
+        <label class="select-shell">
+          <span class="sr-only">Language</span>
+          <select id="languageSelect" class="input-control">
+            <option value="en">English</option>
+            <option value="kn">Kannada</option>
+          </select>
+        </label>
+        <div id="offlineIndicator" class="status-pill" role="status">Online</div>
+        <button id="locateBtn" class="button button-primary" data-i18n="refreshGps">Refresh GPS</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="hero-grid">
+        <article class="panel panel-large">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker" data-i18n="liveSupportMap">Live support map</p>
+              <h2 data-i18n="nearbyLawHealth">Nearby law and health access</h2>
+            </div>
+            <p id="locationText" class="panel-meta" data-i18n="waitingGps">Waiting for live GPS permission...</p>
+          </div>
+          <div id="map" class="map-shell">
+            <div class="map-fallback">
+              <p data-i18n="mapFallback">Map will activate after you add a Google Maps API key.</p>
+            </div>
+          </div>
+          <div class="signal-grid">
+            <div class="signal-card">
+              <span class="signal-label" data-i18n="mode">Mode</span>
+              <strong id="trackingMode" data-i18n="smartTracking">Smart tracking</strong>
+            </div>
+            <div class="signal-card">
+              <span class="signal-label" data-i18n="movementRefresh">Movement refresh</span>
+              <strong data-i18n="movementThreshold">250m threshold</strong>
+            </div>
+            <div class="signal-card">
+              <span class="signal-label" data-i18n="fallback">Fallback</span>
+              <strong data-i18n="localEmergencyCards">Local emergency cards</strong>
+            </div>
+          </div>
+        </article>
+
+        <aside class="hero-side">
+          <article class="panel">
+            <p class="panel-kicker" data-i18n="aiAssistant">AI assistant</p>
+            <div class="chat-head">
+              <div>
+                <h2 data-i18n="fieldCompanion">Field companion</h2>
+                <p class="panel-meta" data-i18n="chatSubtitle">Ask about crops, emergencies, reports, or what help is nearby.</p>
+              </div>
+              <span class="orb"></span>
+            </div>
+            <div id="chatMessages" class="chat-stream" aria-live="polite"></div>
+            <form id="chatForm" class="chat-form">
+              <label class="sr-only" for="chatInput" data-i18n="askAssistant">Ask the assistant</label>
+              <textarea id="chatInput" class="input-area" rows="3" placeholder="Example: I am on black soil and nearby water is low, what should I plant?"></textarea>
+              <div class="chat-actions">
+                <p id="chatStatus" class="muted-text" data-i18n="chatStatusReady">Chatbot uses the backend function and a Gemini API key.</p>
+                <div class="voice-actions">
+                  <button id="micBtn" class="button button-secondary" type="button" data-i18n="mic">Mic</button>
+                  <button id="speakBtn" class="button button-secondary" type="button" data-i18n="speakReply">Speak reply</button>
+                  <button class="button button-primary" type="submit" data-i18n="send">Send</button>
+                </div>
+              </div>
+            </form>
+          </article>
+
+          <article class="panel">
+            <p class="panel-kicker" data-i18n="quickActions">Quick actions</p>
+            <div class="quick-grid">
+              <a class="quick-card" href="#accountability" data-i18n="fileReport">File report</a>
+              <a class="quick-card" href="#farming" data-i18n="openFarmGuide">Open farm guide</a>
+              <button id="chatPromptLocation" class="quick-card quick-card-button" type="button" data-i18n="askAboutArea">Ask about my area</button>
+              <button id="chatPromptEmergency" class="quick-card quick-card-button" type="button" data-i18n="emergencyChecklist">Emergency checklist</button>
+            </div>
+          </article>
+        </aside>
+      </section>
+
+      <section class="content-grid">
+        <section id="law" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker" data-i18n="safety">Safety</p>
+              <h2 data-i18n="lawRescue">Law & rescue access</h2>
+            </div>
+          </div>
+          <div id="lawCards" class="card-grid"></div>
+        </section>
+
+        <section id="health" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker" data-i18n="care">Care</p>
+              <h2 data-i18n="healthFacilities">Health facilities</h2>
+            </div>
+          </div>
+          <div id="healthCards" class="card-grid"></div>
+        </section>
+      </section>
+
+      <section class="content-grid">
+        <section id="accountability" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker" data-i18n="communityAccountability">Community accountability</p>
+              <h2 data-i18n="submitRealReport">Submit a real report</h2>
+            </div>
+            <p class="panel-meta" data-i18n="reportsToFirestore">Reports go to Firestore through a Firebase backend function.</p>
+          </div>
+
+          <form id="reportForm" class="form-grid">
+            <label>
+              <span data-i18n="issueType">Issue type</span>
+              <select id="issueType" class="input-control">
+                <option>Broken road</option>
+                <option>Water supply</option>
+                <option>Street light</option>
+                <option>Drainage</option>
+                <option>Public building</option>
+                <option>Medical help access</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="villageLandmark">Village / landmark</span>
+              <input id="issueLocation" class="input-control" placeholder="Main road near bus stand" />
+            </label>
+            <label class="full-span">
+              <span data-i18n="details">Details</span>
+              <textarea id="issueDetails" class="input-control input-tall" placeholder="Describe the issue, urgency, and who is affected."></textarea>
+            </label>
+            <div class="full-span form-actions">
+              <div class="meta-stack">
+                <p class="muted-text" data-i18n="liveGpsAttached">Live GPS is attached when available.</p>
+                <p id="reportStatus" class="status-text" aria-live="polite"></p>
+              </div>
+              <button class="button button-danger" type="submit" data-i18n="submitReport">Submit report</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="farming" class="panel">
+          <div class="section-head">
+            <div>
+              <p class="panel-kicker" data-i18n="farmingIntelligence">Farming intelligence</p>
+              <h2 data-i18n="soilBasedGuidance">Soil-based guidance</h2>
+            </div>
+            <label class="select-shell">
+              <span class="sr-only" data-i18n="soilType">Soil type</span>
+              <select id="soilSelect" class="input-control">
+                <option value="">Select soil type</option>
+                <option value="Red">Red</option>
+                <option value="Black">Black</option>
+                <option value="Loamy">Loamy</option>
+                <option value="Sandy">Sandy</option>
+              </select>
+            </label>
+          </div>
+
+          <div id="soilAdvice" class="insight-card">
+            <span data-i18n="soilRecommendations">Soil recommendations will appear here.</span>
+          </div>
+
+          <div class="video-header">
+            <div>
+              <p class="panel-kicker" data-i18n="learningLayer">Learning layer</p>
+              <h3 data-i18n="recommendedVideos">Recommended irrigation videos</h3>
+            </div>
+            <p class="panel-meta" data-i18n="youtubeHint">Uses YouTube when a key is available, otherwise shows targeted search shortcuts.</p>
+          </div>
+          <div id="videoGrid" class="video-grid"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
