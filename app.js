@@ -1,21 +1,17 @@
 const config = window.APP_CONFIG || {};
 
-const GOOGLE_MAPS_API_KEY = config.googleMapsApiKey || "";
-const YOUTUBE_API_KEY = config.youtubeApiKey || "";
+const GEMINI_API_KEY = config.geminiApiKey || "";
 const API_BASE_URL = config.apiBaseUrl || "/api";
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const state = {
   map: null,
-  service: null,
   markers: [],
   userMarker: null,
   watchId: null,
   userLocation: null,
   lastPlacesLookupLocation: null,
   activeSoil: "",
-  chatSessionId: crypto.randomUUID(),
-  previousResponseId: null,
   language: "en",
   lastAssistantReply: "",
   recognition: null,
@@ -31,7 +27,7 @@ const translations = {
     liveSupportMap: "Live support map",
     nearbyLawHealth: "Nearby law and health access",
     waitingGps: "Waiting for live GPS permission...",
-    mapFallback: "Map will activate after you add a Google Maps API key.",
+    mapFallback: "Map uses GPS with OpenStreetMap. Allow location access to see nearby help.",
     mode: "Mode",
     smartTracking: "Smart tracking",
     movementRefresh: "Movement refresh",
@@ -43,7 +39,7 @@ const translations = {
     chatSubtitle: "Ask about crops, emergencies, reports, or what help is nearby.",
     askAssistant: "Ask the assistant",
     chatPlaceholder: "Example: I am on black soil and nearby water is low, what should I plant?",
-    chatStatusReady: "Chatbot uses the backend function and a Gemini API key.",
+    chatStatusReady: "Chatbot uses Gemini directly and the map uses GPS with OpenStreetMap.",
     mic: "Mic",
     speakReply: "Speak reply",
     send: "Send",
@@ -72,7 +68,7 @@ const translations = {
     soilRecommendations: "Soil recommendations will appear here.",
     learningLayer: "Learning layer",
     recommendedVideos: "Recommended irrigation videos",
-    youtubeHint: "Uses YouTube when a key is available, otherwise shows targeted search shortcuts.",
+    youtubeHint: "Uses keyless embedded recommendations and search shortcuts.",
     online: "Online",
     offlineMode: "Offline mode",
     fallbackContacts: "Fallback contacts",
@@ -92,8 +88,8 @@ const translations = {
     reportValidation: "Please add both a location and issue details.",
     reportFailed: "Report submission failed.",
     loadingVideos: "Loading irrigation tutorials...",
-    videoUnavailable: "Video preview unavailable without a YouTube API key.",
-    openYoutube: "Open YouTube search",
+    videoUnavailable: "Video preview unavailable.",
+    openYoutube: "Open YouTube",
     soilDefault: "Soil recommendations will appear here.",
     locationPromptWithGps: "Based on my live location ({lat}, {lng}), what help should I check first nearby?",
     locationPromptNoGps: "How should I use this app to find nearby police, legal aid, and health support?",
@@ -107,7 +103,7 @@ const translations = {
     liveSupportMap: "ಲೈವ್ ಸಹಾಯ ನಕ್ಷೆ",
     nearbyLawHealth: "ಹತ್ತಿರದ ಕಾನೂನು ಮತ್ತು ಆರೋಗ್ಯ ಸಹಾಯ",
     waitingGps: "ಲೈವ್ GPS ಅನುಮತಿಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
-    mapFallback: "Google Maps API ಕೀ ಸೇರಿಸಿದ ನಂತರ ನಕ್ಷೆ ಸಕ್ರಿಯವಾಗುತ್ತದೆ.",
+    mapFallback: "ನಕ್ಷೆ GPS ಮತ್ತು OpenStreetMap ಬಳಸುತ್ತದೆ. ಹತ್ತಿರದ ಸಹಾಯ ನೋಡಲು ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ.",
     mode: "ಮೋಡ್",
     smartTracking: "ಸ್ಮಾರ್ಟ್ ಟ್ರ್ಯಾಕಿಂಗ್",
     movementRefresh: "ಚಲನೆಯ ನವೀಕರಣ",
@@ -119,7 +115,7 @@ const translations = {
     chatSubtitle: "ಬೆಳೆಗಳು, ತುರ್ತು ಪರಿಸ್ಥಿತಿ, ದೂರುಗಳು ಅಥವಾ ಹತ್ತಿರದ ಸಹಾಯ ಬಗ್ಗೆ ಕೇಳಿ.",
     askAssistant: "ಸಹಾಯಕನನ್ನು ಕೇಳಿ",
     chatPlaceholder: "ಉದಾಹರಣೆ: ನಾನು ಕಪ್ಪು ಮಣ್ಣಿನಲ್ಲಿ ಇದ್ದೇನೆ ಮತ್ತು ನೀರು ಕಡಿಮೆ ಇದೆ, ಯಾವ ಬೆಳೆ ಬೆಳೆಸಲಿ?",
-    chatStatusReady: "ಚಾಟ್‌ಬಾಟ್ ಬ್ಯಾಕೆಂಡ್ ಫಂಕ್ಷನ್ ಮತ್ತು Gemini API ಕೀ ಬಳಸುತ್ತದೆ.",
+    chatStatusReady: "ಚಾಟ್‌ಬಾಟ್ Gemini ನ್ನೇ ನೇರವಾಗಿ ಬಳಸುತ್ತದೆ ಮತ್ತು ನಕ್ಷೆ GPS ಜೊತೆಗೆ OpenStreetMap ಬಳಸುತ್ತದೆ.",
     mic: "ಮೈಕ್",
     speakReply: "ಉತ್ತರವನ್ನು ಕೇಳಿ",
     send: "ಕಳುಹಿಸಿ",
@@ -148,7 +144,7 @@ const translations = {
     soilRecommendations: "ಮಣ್ಣಿನ ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
     learningLayer: "ಅಭ್ಯಾಸ ವಿಭಾಗ",
     recommendedVideos: "ಶಿಫಾರಸಾದ ನೀರಾವರಿ ವಿಡಿಯೋಗಳು",
-    youtubeHint: "ಕೀ ಇದ್ದರೆ YouTube ಬಳಸುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ಹುಡುಕಾಟ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳನ್ನು ತೋರಿಸುತ್ತದೆ.",
+    youtubeHint: "ಕೀ ಇಲ್ಲದೆ ಆಯ್ದ ವಿಡಿಯೋ ಶಿಫಾರಸುಗಳು ಮತ್ತು ಹುಡುಕಾಟ ಲಿಂಕ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
     online: "ಆನ್‌ಲೈನ್",
     offlineMode: "ಆಫ್‌ಲೈನ್ ಮೋಡ್",
     fallbackContacts: "ಪರ್ಯಾಯ ಸಂಪರ್ಕಗಳು",
@@ -168,8 +164,8 @@ const translations = {
     reportValidation: "ದಯವಿಟ್ಟು ಸ್ಥಳ ಮತ್ತು ಸಮಸ್ಯೆಯ ವಿವರ ಎರಡನ್ನೂ ಸೇರಿಸಿ.",
     reportFailed: "ದೂರು ಸಲ್ಲಿಕೆ ವಿಫಲವಾಗಿದೆ.",
     loadingVideos: "ನೀರಾವರಿ ವಿಡಿಯೋಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...",
-    videoUnavailable: "YouTube API ಕೀ ಇಲ್ಲದೆ ವಿಡಿಯೋ ಪೂರ್ವದೃಶ್ಯ ಲಭ್ಯವಿಲ್ಲ.",
-    openYoutube: "YouTube ಹುಡುಕಾಟ ತೆರೆಯಿರಿ",
+    videoUnavailable: "ವಿಡಿಯೋ ಪೂರ್ವದೃಶ್ಯ ಲಭ್ಯವಿಲ್ಲ.",
+    openYoutube: "YouTube ತೆರೆಯಿರಿ",
     soilDefault: "ಮಣ್ಣಿನ ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
     locationPromptWithGps: "ನನ್ನ ಲೈವ್ ಸ್ಥಳ ({lat}, {lng}) ಆಧರಿಸಿ, ಹತ್ತಿರದಲ್ಲಿ ನಾನು ಮೊದಲು ಯಾವ ಸಹಾಯವನ್ನು ನೋಡಬೇಕು?",
     locationPromptNoGps: "ಹತ್ತಿರದ ಪೊಲೀಸ್, ಕಾನೂನು ಸಹಾಯ ಮತ್ತು ಆರೋಗ್ಯ ಸಹಾಯ ಹುಡುಕಲು ಈ ಅಪ್ ಅನ್ನು ಹೇಗೆ ಬಳಸಬೇಕು?",
@@ -201,18 +197,26 @@ const soilRules = {
 };
 
 const localEmergencyContacts = {
-  type: "FeatureCollection",
   features: [
-    { type: "Feature", properties: { category: "Police Station", name: "Demo Rural Police Outpost", phone: "100", distance: "1.2 km" }, geometry: { type: "Point", coordinates: [77.5946, 12.9716] } },
-    { type: "Feature", properties: { category: "District Court", name: "Demo District Legal Aid Desk", phone: "15100", distance: "3.8 km" }, geometry: { type: "Point", coordinates: [77.6046, 12.9816] } },
-    { type: "Feature", properties: { category: "Government Hospital", name: "Demo Government Hospital", phone: "108", distance: "2.4 km" }, geometry: { type: "Point", coordinates: [77.5846, 12.9616] } },
-    { type: "Feature", properties: { category: "Medical Diagnostic Center", name: "Demo Diagnostic Center", phone: "104", distance: "4.1 km" }, geometry: { type: "Point", coordinates: [77.5746, 12.9516] } }
+    { category: "Police Station", name: "Demo Rural Police Outpost", phone: "100", distance: "1.2 km", location: { lat: 12.9716, lng: 77.5946 } },
+    { category: "District Court", name: "Demo District Legal Aid Desk", phone: "15100", distance: "3.8 km", location: { lat: 12.9816, lng: 77.6046 } },
+    { category: "Government Hospital", name: "Demo Government Hospital", phone: "108", distance: "2.4 km", location: { lat: 12.9616, lng: 77.5846 } },
+    { category: "Medical Diagnostic Center", name: "Demo Diagnostic Center", phone: "104", distance: "4.1 km", location: { lat: 12.9516, lng: 77.5746 } }
   ]
 };
 
-function hasRealKey(key, placeholder) {
-  return Boolean(key) && key !== placeholder && key.length > placeholder.length;
-}
+const nearbySearches = [
+  { category: "Police Station", query: "[amenity=police]" },
+  { category: "District Court", query: "[amenity=courthouse]" },
+  { category: "Government Hospital", query: "[amenity=hospital]" },
+  { category: "Medical Diagnostic Center", query: "[amenity=clinic]" }
+];
+
+const sharedVideo = {
+  title: "Irrigation support video",
+  id: "dzQF9gfFBQI",
+  url: "https://youtu.be/dzQF9gfFBQI?si=mziueBrHtdHXKu6k"
+};
 
 function escapeHtml(value) {
   return String(value)
@@ -223,11 +227,15 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function t(key) {
+  return translations[state.language]?.[key] || translations.en[key] || key;
+}
+
 function setIndicator(mode, message) {
   const indicator = document.getElementById("offlineIndicator");
   indicator.textContent = mode;
-  indicator.style.color = mode === "Offline mode" ? "#ffb4b4" : "#b4ffd2";
-  indicator.style.borderColor = mode === "Offline mode" ? "rgba(255, 107, 107, 0.3)" : "rgba(125, 252, 192, 0.3)";
+  indicator.style.color = mode === t("offlineMode") ? "#ffb4b4" : "#b4ffd2";
+  indicator.style.borderColor = mode === t("offlineMode") ? "rgba(255, 107, 107, 0.3)" : "rgba(125, 252, 192, 0.3)";
   document.getElementById("locationText").textContent = message;
 }
 
@@ -246,10 +254,9 @@ function addChatMessage(role, text) {
 
 function setMicButtonState() {
   const micBtn = document.getElementById("micBtn");
-  if (!micBtn) {
-    return;
+  if (micBtn) {
+    micBtn.textContent = state.isListening ? `${t("mic")}...` : t("mic");
   }
-  micBtn.textContent = state.isListening ? `${t("mic")}...` : t("mic");
 }
 
 function setChatStatus(message) {
@@ -260,147 +267,6 @@ function setReportStatus(message, isError = false) {
   const node = document.getElementById("reportStatus");
   node.textContent = message;
   node.style.color = isError ? "#ffb4b4" : "#b4ffd2";
-}
-
-function manualOverride(reason) {
-  setIndicator(t("offlineMode"), reason || "Using local emergency contacts.");
-  setTrackingMode(t("fallbackContacts"));
-  const places = localEmergencyContacts.features.map((feature) => {
-    const [lng, lat] = feature.geometry.coordinates;
-    return {
-      category: feature.properties.category,
-      name: feature.properties.name,
-      phone: feature.properties.phone,
-      distanceText: feature.properties.distance,
-      location: { lat, lng }
-    };
-  });
-  renderServiceCards(places);
-}
-
-function loadGoogleMaps() {
-  if (!hasRealKey(GOOGLE_MAPS_API_KEY, "GOOGLE_MAPS_API_KEY")) {
-    manualOverride("Google Maps key missing. Showing local emergency cards.");
-    return;
-  }
-
-  const script = document.createElement("script");
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
-  script.async = true;
-  script.onerror = () => manualOverride("Google Maps failed to load. Showing local emergency cards.");
-  document.head.appendChild(script);
-}
-
-window.initMap = function initMap() {
-  const defaultCenter = { lat: 20.5937, lng: 78.9629 };
-  state.map = new google.maps.Map(document.getElementById("map"), {
-    center: defaultCenter,
-    zoom: 5,
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: false
-  });
-  state.service = new google.maps.places.PlacesService(state.map);
-  setTrackingMode("Live GPS");
-  applyTranslations();
-  startLocationTracking();
-};
-
-function startLocationTracking() {
-  if (!navigator.geolocation) {
-    manualOverride("Geolocation unsupported. Showing local emergency cards.");
-    return;
-  }
-
-  if (state.watchId !== null) {
-    navigator.geolocation.clearWatch(state.watchId);
-  }
-
-  state.watchId = navigator.geolocation.watchPosition(
-    (position) => updateUserLocation(position),
-    () => manualOverride("Location permission blocked. Showing local emergency cards."),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
-  );
-}
-
-function updateUserLocation(position) {
-  const nextLocation = {
-    lat: position.coords.latitude,
-    lng: position.coords.longitude
-  };
-
-  const shouldRefreshPlaces =
-    !state.lastPlacesLookupLocation ||
-    distanceKm(state.lastPlacesLookupLocation, nextLocation) >= 0.25;
-
-  state.userLocation = nextLocation;
-  setIndicator(t("online"), `Live GPS: ${nextLocation.lat.toFixed(4)}, ${nextLocation.lng.toFixed(4)}`);
-
-  if (!state.map || !window.google) {
-    return;
-  }
-
-  state.map.setCenter(nextLocation);
-  state.map.setZoom(13);
-
-  if (!state.userMarker) {
-    state.userMarker = new google.maps.Marker({
-      position: nextLocation,
-      map: state.map,
-      title: "You are here"
-    });
-  } else {
-    state.userMarker.setPosition(nextLocation);
-  }
-
-  if (shouldRefreshPlaces) {
-    state.lastPlacesLookupLocation = nextLocation;
-    findNearbyServices();
-  }
-}
-
-function findNearbyServices() {
-  if (!state.service || !state.userLocation) {
-    manualOverride("Places service unavailable. Showing local emergency cards.");
-    return;
-  }
-
-  const searches = [
-    "Police Station",
-    "District Court",
-    "Government Hospital",
-    "Medical Diagnostic Center"
-  ];
-
-  Promise.all(searches.map(searchPlaces))
-    .then((groups) => renderServiceCards(groups.flat()))
-    .catch(() => manualOverride("Places lookup failed. Showing local emergency cards."));
-}
-
-function searchPlaces(category) {
-  return new Promise((resolve, reject) => {
-    state.service.textSearch({
-      query: category,
-      location: state.userLocation,
-      radius: 25000
-    }, (results, status) => {
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-        reject(status);
-        return;
-      }
-
-      resolve(results.slice(0, 3).map((place) => {
-        const loc = place.geometry.location;
-        return {
-          category,
-          name: place.name,
-          phone: "",
-          distanceText: formatDistance(distanceKm(state.userLocation, { lat: loc.lat(), lng: loc.lng() })),
-          location: { lat: loc.lat(), lng: loc.lng() }
-        };
-      }));
-    });
-  });
 }
 
 function distanceKm(from, to) {
@@ -422,23 +288,6 @@ function formatDistance(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
 }
 
-function renderServiceCards(places) {
-  const law = places.filter((place) => place.category.includes("Police") || place.category.includes("Court"));
-  const health = places.filter((place) => place.category.includes("Hospital") || place.category.includes("Diagnostic"));
-
-  document.getElementById("lawCards").innerHTML = law.map(cardTemplate).join("");
-  document.getElementById("healthCards").innerHTML = health.map(cardTemplate).join("");
-
-  if (state.map && window.google) {
-    state.markers.forEach((marker) => marker.setMap(null));
-    state.markers = places.map((place) => new google.maps.Marker({
-      position: place.location,
-      map: state.map,
-      title: place.name
-    }));
-  }
-}
-
 function cardTemplate(place) {
   const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`;
   const tel = place.phone ? `tel:${place.phone}` : "tel:108";
@@ -455,13 +304,151 @@ function cardTemplate(place) {
   `;
 }
 
+function renderServiceCards(places) {
+  const law = places.filter((place) => place.category.includes("Police") || place.category.includes("Court"));
+  const health = places.filter((place) => place.category.includes("Hospital") || place.category.includes("Diagnostic"));
+  document.getElementById("lawCards").innerHTML = law.map(cardTemplate).join("");
+  document.getElementById("healthCards").innerHTML = health.map(cardTemplate).join("");
+
+  if (state.map && window.L) {
+    state.markers.forEach((marker) => marker.remove());
+    state.markers = places.map((place) =>
+      window.L.marker([place.location.lat, place.location.lng]).addTo(state.map).bindPopup(escapeHtml(place.name))
+    );
+  }
+}
+
+function manualOverride(reason) {
+  setIndicator(t("offlineMode"), reason || "Using local emergency contacts.");
+  setTrackingMode(t("fallbackContacts"));
+  renderServiceCards(localEmergencyContacts.features);
+}
+
+function initMap() {
+  if (!window.L) {
+    manualOverride("Map library unavailable. Showing local emergency cards.");
+    return;
+  }
+
+  const defaultCenter = [20.5937, 78.9629];
+  state.map = window.L.map("map", { zoomControl: true }).setView(defaultCenter, 5);
+  window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(state.map);
+
+  setTrackingMode(t("liveGpsMode"));
+  startLocationTracking();
+}
+
+function startLocationTracking() {
+  if (!navigator.geolocation) {
+    manualOverride("Geolocation unsupported. Showing local emergency cards.");
+    return;
+  }
+
+  if (state.watchId !== null) {
+    navigator.geolocation.clearWatch(state.watchId);
+  }
+
+  state.watchId = navigator.geolocation.watchPosition(
+    (position) => updateUserLocation(position),
+    (error) => {
+      const reason = error?.code === 1
+        ? "Location permission blocked. Showing local emergency cards."
+        : "Location unavailable. Showing local emergency cards.";
+      manualOverride(reason);
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
+  );
+}
+
+function updateUserLocation(position) {
+  const nextLocation = {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude
+  };
+
+  const shouldRefreshPlaces =
+    !state.lastPlacesLookupLocation ||
+    distanceKm(state.lastPlacesLookupLocation, nextLocation) >= 0.25;
+
+  state.userLocation = nextLocation;
+  setIndicator(t("online"), `Live GPS: ${nextLocation.lat.toFixed(5)}, ${nextLocation.lng.toFixed(5)}`);
+
+  if (state.map) {
+    state.map.setView([nextLocation.lat, nextLocation.lng], 14);
+    if (!state.userMarker) {
+      state.userMarker = window.L.marker([nextLocation.lat, nextLocation.lng]).addTo(state.map).bindPopup("You are here");
+    } else {
+      state.userMarker.setLatLng([nextLocation.lat, nextLocation.lng]);
+    }
+  }
+
+  if (shouldRefreshPlaces) {
+    state.lastPlacesLookupLocation = nextLocation;
+    findNearbyServices();
+  }
+}
+
+async function searchPlaces(search) {
+  const { lat, lng } = state.userLocation;
+  const query = `
+    [out:json][timeout:15];
+    (
+      node${search.query}(around:25000,${lat},${lng});
+      way${search.query}(around:25000,${lat},${lng});
+      relation${search.query}(around:25000,${lat},${lng});
+    );
+    out center 3;
+  `;
+
+  const response = await fetch("https://overpass-api.de/api/interpreter", {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+    body: query
+  });
+
+  if (!response.ok) {
+    throw new Error("Overpass request failed");
+  }
+
+  const data = await response.json();
+  return (data.elements || []).slice(0, 3).map((element) => {
+    const point = {
+      lat: element.lat ?? element.center?.lat,
+      lng: element.lon ?? element.center?.lon
+    };
+    return {
+      category: search.category,
+      name: element.tags?.name || search.category,
+      phone: element.tags?.phone || "",
+      distanceText: formatDistance(distanceKm(state.userLocation, point)),
+      location: point
+    };
+  }).filter((place) => Number.isFinite(place.location.lat) && Number.isFinite(place.location.lng));
+}
+
+function findNearbyServices() {
+  if (!state.userLocation) {
+    manualOverride("Location unavailable. Showing local emergency cards.");
+    return;
+  }
+
+  Promise.all(nearbySearches.map(searchPlaces))
+    .then((groups) => {
+      const places = groups.flat();
+      renderServiceCards(places.length ? places : localEmergencyContacts.features);
+    })
+    .catch(() => manualOverride("Nearby search failed. Showing local emergency cards."));
+}
+
 function renderSoilAdvice(soil) {
   state.activeSoil = soil;
   const node = document.getElementById("soilAdvice");
   const advice = soilRules[soil];
 
   if (!advice) {
-    node.textContent = "Soil recommendations will appear here.";
     node.textContent = t("soilDefault");
     document.getElementById("videoGrid").innerHTML = "";
     return;
@@ -476,44 +463,11 @@ function renderSoilAdvice(soil) {
   loadIrrigationVideos(soil);
 }
 
-async function loadIrrigationVideos(soil) {
-  const grid = document.getElementById("videoGrid");
-  grid.innerHTML = `<article class="video-card"><div class="video-placeholder">${t("loadingVideos")}</div></article>`;
-
-  if (!hasRealKey(YOUTUBE_API_KEY, "YOUTUBE_API_KEY")) {
-    renderFallbackVideos(soil);
-    return;
-  }
-
-  try {
-    const query = encodeURIComponent(`Irrigation techniques for ${soil} soil`);
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=2&q=${query}&key=${YOUTUBE_API_KEY}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error("YouTube request failed");
-    }
-
-    const data = await response.json();
-    const videos = (data.items || []).map((item) => ({
-      title: item.snippet.title,
-      id: item.id.videoId
-    }));
-    renderVideos(videos);
-  } catch {
-    renderFallbackVideos(soil);
-  }
-}
-
-function renderFallbackVideos(soil) {
+function loadIrrigationVideos(soil) {
+  const title = `${sharedVideo.title} for ${soil} soil`;
   renderVideos([
-    {
-      title: `Irrigation techniques for ${soil} soil`,
-      searchQuery: `Irrigation techniques for ${soil} soil`
-    },
-    {
-      title: `Water saving farming methods for ${soil} soil`,
-      searchQuery: `Water saving farming methods for ${soil} soil`
-    }
+    { title, id: sharedVideo.id, url: sharedVideo.url },
+    { title: `Search more irrigation methods for ${soil} soil`, searchQuery: `Irrigation techniques for ${soil} soil` }
   ]);
 }
 
@@ -525,6 +479,10 @@ function renderVideos(videos) {
         : `<div class="video-placeholder">${t("videoUnavailable")}</div>`
       }
       <h3>${escapeHtml(video.title)}</h3>
+      ${video.url
+        ? `<a class="link-button" href="${video.url}" target="_blank" rel="noopener">${t("openYoutube")}</a>`
+        : ""
+      }
       ${video.searchQuery
         ? `<a class="link-button" href="https://www.youtube.com/results?search_query=${encodeURIComponent(video.searchQuery)}" target="_blank" rel="noopener">${t("openYoutube")}</a>`
         : ""
@@ -558,9 +516,8 @@ async function submitReport(event) {
     });
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || "Report submission failed");
+      throw new Error(result.error || t("reportFailed"));
     }
-
     event.target.reset();
     setReportStatus(t("reportSaved"));
   } catch (error) {
@@ -581,28 +538,53 @@ async function submitChatMessage(event) {
   setChatStatus(t("thinking"));
 
   try {
-    const response = await fetch(`${API_BASE_URL}/chat`, {
+    if (!GEMINI_API_KEY) {
+      throw new Error("Gemini API key is missing.");
+    }
+
+    const languageInstruction = state.language === "kn"
+      ? "Reply in Kannada unless the user asks for another language."
+      : "Reply in English unless the user asks for another language.";
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionId: state.chatSessionId,
-        previousResponseId: state.previousResponseId,
-        message,
-        context: {
-          soil: state.activeSoil,
-          gps: state.userLocation,
-          language: state.language
+        contents: [
+          {
+            parts: [
+              {
+                text: [
+                  "You are the Rural Resilience Hub assistant.",
+                  "Give practical, concise answers for rural users on farming, emergencies, nearby support, women and child safety, and civic complaints.",
+                  languageInstruction,
+                  state.activeSoil ? `Active soil type: ${state.activeSoil}.` : "",
+                  state.userLocation ? `User GPS coordinates: ${state.userLocation.lat.toFixed(4)}, ${state.userLocation.lng.toFixed(4)}.` : "",
+                  `User message: ${message}`
+                ].filter(Boolean).join(" ")
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 700
         }
       })
     });
+
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || "Chat request failed");
+      throw new Error(result?.error?.message || "Chat request failed");
     }
 
-    state.previousResponseId = result.responseId || null;
-    state.lastAssistantReply = result.reply;
-    addChatMessage("assistant", result.reply);
+    const reply = (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
+    if (!reply) {
+      throw new Error("Gemini returned an empty response.");
+    }
+
+    state.lastAssistantReply = reply;
+    addChatMessage("assistant", reply);
     setChatStatus(t("assistantReady"));
   } catch (error) {
     addChatMessage("assistant", error.message || "The assistant is unavailable right now.");
@@ -624,7 +606,6 @@ function startVoiceInput() {
 
   if (!state.recognition) {
     state.recognition = new SpeechRecognition();
-    state.recognition.lang = state.language === "kn" ? "kn-IN" : "en-IN";
     state.recognition.interimResults = false;
     state.recognition.maxAlternatives = 1;
     state.recognition.onresult = (event) => {
@@ -661,25 +642,65 @@ async function speakAssistantReply() {
   setChatStatus(t("speaking"));
 
   try {
-    const response = await fetch(`${API_BASE_URL}/tts`, {
+    if (!GEMINI_API_KEY) {
+      throw new Error("Gemini API key is missing.");
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        text: state.lastAssistantReply,
-        language: state.language
+        contents: [
+          {
+            parts: [
+              {
+                text: state.language === "kn"
+                  ? `Read this naturally in Kannada: ${state.lastAssistantReply}`
+                  : `Read this naturally in English: ${state.lastAssistantReply}`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: state.language === "kn" ? "Kore" : "Aoede"
+              }
+            }
+          }
+        }
       })
     });
+
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || t("voiceError"));
+      throw new Error(result?.error?.message || t("voiceError"));
     }
 
-    const audio = new Audio(`data:${result.mimeType};base64,${result.audioBase64}`);
+    const audioPart = result?.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
+    if (!audioPart?.inlineData?.data) {
+      throw new Error(t("voiceError"));
+    }
+
+    const audio = new Audio(`data:${audioPart.inlineData.mimeType || "audio/wav"};base64,${audioPart.inlineData.data}`);
     audio.onended = () => setChatStatus(t("voiceReady"));
     await audio.play();
   } catch (error) {
     setChatStatus(error.message || t("voiceError"));
   }
+}
+
+function applyTranslations() {
+  document.documentElement.lang = state.language === "kn" ? "kn" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.getElementById("chatInput").placeholder = t("chatPlaceholder");
+  document.getElementById("issueLocation").placeholder = t("issuePlaceholder");
+  document.getElementById("issueDetails").placeholder = t("detailsPlaceholder");
+  setMicButtonState();
 }
 
 function bindEvents() {
@@ -694,17 +715,12 @@ function bindEvents() {
   document.getElementById("reportForm").addEventListener("submit", submitReport);
   document.getElementById("chatForm").addEventListener("submit", submitChatMessage);
   document.getElementById("chatPromptLocation").addEventListener("click", () => {
-    const locationPrompt = state.userLocation
-      ? t("locationPromptWithGps")
-        .replace("{lat}", state.userLocation.lat.toFixed(4))
-        .replace("{lng}", state.userLocation.lng.toFixed(4))
+    const prompt = state.userLocation
+      ? t("locationPromptWithGps").replace("{lat}", state.userLocation.lat.toFixed(4)).replace("{lng}", state.userLocation.lng.toFixed(4))
       : t("locationPromptNoGps");
-    promptChat(locationPrompt);
+    promptChat(prompt);
   });
-  document.getElementById("chatPromptEmergency").addEventListener("click", () => {
-    promptChat(t("emergencyPrompt"));
-  });
-
+  document.getElementById("chatPromptEmergency").addEventListener("click", () => promptChat(t("emergencyPrompt")));
   window.addEventListener("offline", () => manualOverride("Device is offline. Showing local emergency cards."));
   window.addEventListener("online", () => setIndicator(t("online"), "Connection restored. Tap refresh GPS if the location looks stale."));
 }
@@ -713,23 +729,7 @@ function boot() {
   applyTranslations();
   bindEvents();
   addChatMessage("assistant", t("assistantGreeting"));
-  loadGoogleMaps();
-}
-
-function t(key) {
-  return translations[state.language]?.[key] || translations.en[key] || key;
-}
-
-function applyTranslations() {
-  document.documentElement.lang = state.language === "kn" ? "kn" : "en";
-  document.querySelectorAll("[data-i18n]").forEach((node) => {
-    const key = node.dataset.i18n;
-    node.textContent = t(key);
-  });
-  document.getElementById("chatInput").placeholder = t("chatPlaceholder");
-  document.getElementById("issueLocation").placeholder = t("issuePlaceholder");
-  document.getElementById("issueDetails").placeholder = t("detailsPlaceholder");
-  setMicButtonState();
+  initMap();
 }
 
 boot();
