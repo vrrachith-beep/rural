@@ -53,6 +53,12 @@ firebase deploy
 
 If you host the frontend on GitHub Pages, set `apiBaseUrl` in [config.js](/abs/c:/Users/rachith.LAPTOP-LO30R5P3/Desktop/rural/config.js:1) to your deployed Firebase function URL instead of `/api`
 
+The repo is currently pointed at:
+
+```js
+apiBaseUrl: "https://asia-south1-cleancredit-live.cloudfunctions.net/api"
+```
+
 ## Firebase pieces
 
 - [firebase.json](/abs/c:/Users/rachith.LAPTOP-LO30R5P3/Desktop/rural/firebase.json:1) configures Hosting and rewrites `/api/**` to the Firebase Function
