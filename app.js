@@ -83,6 +83,28 @@ const translations = {
     soilBasedGuidance: "Soil-based guidance",
     soilType: "Soil type",
     soilRecommendations: "Soil recommendations will appear here.",
+    cropComparison: "Crop profit comparison",
+    weatherMonth: "30-day weather preparation",
+    spend: "Spend",
+    revenue: "Revenue",
+    profit: "Profit",
+    growTime: "Grow time",
+    waterNeed: "Water",
+    risk: "Risk",
+    bestReturn: "Best estimated return",
+    perAcreNote: "Planning estimates per acre. Actual prices and yields change by season, market, water, seed quality, and pests.",
+    loadingWeather: "Loading weather estimate...",
+    weatherNoGps: "Using Tumakuru-area weather estimate until live GPS is available.",
+    weatherSummary: "Weather estimate",
+    rain: "Rain",
+    hotDays: "Hot days",
+    avgTemp: "Avg temp",
+    prepAdvice: "Preparation advice",
+    days: "days",
+    mm: "mm",
+    rupeePrefix: "₹",
+    longTerm: "Long-term",
+    later: "Later",
     learningLayer: "Learning layer",
     recommendedVideos: "Recommended irrigation videos",
     youtubeHint: "Uses keyless embedded recommendations and search shortcuts.",
@@ -168,6 +190,28 @@ const translations = {
     soilBasedGuidance: "ಮಣ್ಣಿನ ಆಧಾರಿತ ಸಲಹೆ",
     soilType: "ಮಣ್ಣಿನ ವಿಧ",
     soilRecommendations: "ಮಣ್ಣಿನ ಶಿಫಾರಸುಗಳು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
+    cropComparison: "ಬೆಳೆ ಲಾಭ ಹೋಲಿಕೆ",
+    weatherMonth: "30 ದಿನಗಳ ಹವಾಮಾನ ಸಿದ್ಧತೆ",
+    spend: "ಖರ್ಚು",
+    revenue: "ಆದಾಯ",
+    profit: "ಲಾಭ",
+    growTime: "ಬೆಳೆಯುವ ಕಾಲ",
+    waterNeed: "ನೀರು",
+    risk: "ಅಪಾಯ",
+    bestReturn: "ಅಂದಾಜು ಉತ್ತಮ ಲಾಭ",
+    perAcreNote: "ಪ್ರತಿ ಏಕರೆಗೆ planning ಅಂದಾಜು. ನಿಜವಾದ ಬೆಲೆ ಮತ್ತು ಉತ್ಪಾದನೆ ಋತು, ಮಾರುಕಟ್ಟೆ, ನೀರು, ಬೀಜ ಗುಣಮಟ್ಟ ಮತ್ತು ಕೀಟಗಳಿಂದ ಬದಲಾಗುತ್ತದೆ.",
+    loadingWeather: "ಹವಾಮಾನ ಅಂದಾಜು ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+    weatherNoGps: "ಲೈವ್ GPS ಲಭ್ಯವಿಲ್ಲದಿದ್ದರೆ ತುಮಕೂರು ಪ್ರದೇಶದ ಹವಾಮಾನ ಅಂದಾಜು ಬಳಸಲಾಗುತ್ತದೆ.",
+    weatherSummary: "ಹವಾಮಾನ ಅಂದಾಜು",
+    rain: "ಮಳೆ",
+    hotDays: "ಬಿಸಿ ದಿನಗಳು",
+    avgTemp: "ಸರಾಸರಿ ತಾಪಮಾನ",
+    prepAdvice: "ಸಿದ್ಧತಾ ಸಲಹೆ",
+    days: "ದಿನಗಳು",
+    mm: "ಮಿಮೀ",
+    rupeePrefix: "ರೂ.",
+    longTerm: "ದೀರ್ಘಾವಧಿ",
+    later: "ನಂತರ",
     learningLayer: "ಅಭ್ಯಾಸ ವಿಭಾಗ",
     recommendedVideos: "ಶಿಫಾರಸಾದ ನೀರಾವರಿ ವಿಡಿಯೋಗಳು",
     youtubeHint: "ಕೀ ಇಲ್ಲದೆ ಆಯ್ದ ವಿಡಿಯೋ ಶಿಫಾರಸುಗಳು ಮತ್ತು ಹುಡುಕಾಟ ಲಿಂಕ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
@@ -199,28 +243,89 @@ const translations = {
   }
 };
 
-const soilRules = {
+const soilAdviceText = {
   Red: {
-    fertilizer: "Urea + Potash",
-    crops: "Ragi / Groundnut",
-    water: "Use short, frequent irrigation bursts to avoid runoff."
+    fertilizer: "Urea + Potash with farmyard manure",
+    fertilizerKn: "ಯೂರಿಯಾ + ಪೊಟ್ಯಾಶ್ ಜೊತೆಗೆ ಕೊಟ್ಟಿಗೆ ಗೊಬ್ಬರ",
+    water: "Use short, frequent irrigation bursts to avoid runoff.",
+    waterKn: "ನೀರು ಹರಿದು ಹೋಗದಂತೆ ಕಡಿಮೆ ಅವಧಿಯ, ಮರುಮರು ನೀರಾವರಿ ಬಳಸಿ."
   },
   Black: {
-    fertilizer: "DAP + Zinc",
-    crops: "Cotton / Soybean",
-    water: "Deep irrigation in wider intervals works well because black soil holds moisture."
+    fertilizer: "DAP + Zinc with deep organic compost",
+    fertilizerKn: "ಡಿಎಪಿ + ಜಿಂಕ್ ಜೊತೆಗೆ ಸಾವಯವ ಗೊಬ್ಬರ",
+    water: "Deep irrigation in wider intervals works well because black soil holds moisture.",
+    waterKn: "ಕಪ್ಪು ಮಣ್ಣು ತೇವಾಂಶ ಹಿಡಿಯುವುದರಿಂದ ದೊಡ್ಡ ಅಂತರದಲ್ಲಿ ಆಳವಾದ ನೀರಾವರಿ ಚೆನ್ನಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ."
   },
   Loamy: {
-    fertilizer: "NPK 19-19-19",
-    crops: "Vegetables / Fruit",
-    water: "Balanced drip or furrow irrigation usually performs best."
+    fertilizer: "NPK 19-19-19 with compost support",
+    fertilizerKn: "ಎನ್‌ಪಿಕೆ 19-19-19 ಜೊತೆಗೆ ಸಾವಯವ ಗೊಬ್ಬರ",
+    water: "Balanced drip or furrow irrigation usually performs best.",
+    waterKn: "ಸಮತೋಲನ drip ಅಥವಾ furrow irrigation ಸಾಮಾನ್ಯವಾಗಿ ಉತ್ತಮ."
   },
   Sandy: {
     fertilizer: "Compost + NPK support",
-    crops: "Millet / Watermelon",
-    water: "Use mulching and frequent light irrigation because sandy soil drains fast."
+    fertilizerKn: "ಸಾವಯವ ಗೊಬ್ಬರ + ಎನ್‌ಪಿಕೆ ಸಹಾಯ",
+    water: "Use mulching and frequent light irrigation because sandy soil drains fast.",
+    waterKn: "ಮರಳು ಮಣ್ಣು ನೀರನ್ನು ಬೇಗ ಬಿಡುವುದರಿಂದ mulching ಮತ್ತು ಕಡಿಮೆ ಪ್ರಮಾಣದ ಮರುಮರು ನೀರಾವರಿ ಬಳಸಿ."
   }
 };
+
+const cropPlans = {
+  Red: [
+    { crop: "Ragi", cropKn: "ರಾಗಿ", spend: 14500, revenue: 42000, days: 110, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Groundnut", cropKn: "ಕಡಲೆಕಾಯಿ", spend: 24500, revenue: 62000, days: 105, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Red gram", cropKn: "ತೊಗರಿ", spend: 18500, revenue: 52000, days: 165, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Horse gram", cropKn: "ಹುರಳಿ", spend: 9500, revenue: 28500, days: 90, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Sesame", cropKn: "ಎಳ್ಳು", spend: 12500, revenue: 36000, days: 95, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Castor", cropKn: "ಹರಳು", spend: 16000, revenue: 45000, days: 150, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Foxtail millet", cropKn: "ನವಣೆ", spend: 10500, revenue: 33000, days: 85, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" }
+  ],
+  Black: [
+    { crop: "Cotton", cropKn: "ಹತ್ತಿ", spend: 42000, revenue: 98000, days: 175, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" },
+    { crop: "Soybean", cropKn: "ಸೊಯಾಬೀನ್", spend: 23500, revenue: 56000, days: 100, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Sunflower", cropKn: "ಸೂರ್ಯಕಾಂತಿ", spend: 21000, revenue: 54000, days: 95, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Maize", cropKn: "ಮೆಕ್ಕೆಜೋಳ", spend: 28000, revenue: 68000, days: 115, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Bengal gram", cropKn: "ಕಡಲೆ", spend: 18500, revenue: 50000, days: 115, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Sorghum", cropKn: "ಜೋಳ", spend: 16000, revenue: 39000, days: 110, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Onion", cropKn: "ಈರುಳ್ಳಿ", spend: 52000, revenue: 125000, days: 125, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" }
+  ],
+  Loamy: [
+    { crop: "Tomato", cropKn: "ಟೊಮೇಟೊ", spend: 65000, revenue: 155000, days: 100, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" },
+    { crop: "Chilli", cropKn: "ಮೆಣಸಿನಕಾಯಿ", spend: 72000, revenue: 170000, days: 150, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" },
+    { crop: "Beans", cropKn: "ಹುರಳಿಕಾಯಿ", spend: 36000, revenue: 88000, days: 65, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Cabbage", cropKn: "ಎಲೆಕೋಸು", spend: 42000, revenue: 94000, days: 85, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Banana", cropKn: "ಬಾಳೆ", spend: 105000, revenue: 245000, days: 365, water: "High", waterKn: "ಹೆಚ್ಚು", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Paddy", cropKn: "ಭತ್ತ", spend: 38000, revenue: 76000, days: 130, water: "High", waterKn: "ಹೆಚ್ಚು", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Cucumber", cropKn: "ಸೌತೆಕಾಯಿ", spend: 32000, revenue: 78000, days: 60, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" }
+  ],
+  Sandy: [
+    { crop: "Watermelon", cropKn: "ಕಲ್ಲಂಗಡಿ", spend: 47000, revenue: 115000, days: 85, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" },
+    { crop: "Muskmelon", cropKn: "ಕರಬೂಜ", spend: 44000, revenue: 108000, days: 80, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "High", riskKn: "ಹೆಚ್ಚು" },
+    { crop: "Pearl millet", cropKn: "ಸಜ್ಜೆ", spend: 12000, revenue: 31000, days: 85, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Cowpea", cropKn: "ಅಲಸಂದೆ", spend: 15500, revenue: 41000, days: 75, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Low", riskKn: "ಕಡಿಮೆ" },
+    { crop: "Sweet potato", cropKn: "ಗೆಣಸು", spend: 30000, revenue: 74000, days: 115, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Cluster bean", cropKn: "ಗೋರಿಕಾಯಿ", spend: 18000, revenue: 46000, days: 80, water: "Low", waterKn: "ಕಡಿಮೆ", risk: "Medium", riskKn: "ಮಧ್ಯಮ" },
+    { crop: "Coconut saplings", cropKn: "ತೆಂಗಿನ ಸಸಿಗಳು", spend: 85000, revenue: 0, days: 1095, water: "Medium", waterKn: "ಮಧ್ಯಮ", risk: "Long-term", riskKn: "ದೀರ್ಘಾವಧಿ" }
+  ]
+};
+
+const issueOptions = [
+  { value: "Broken road", en: "Broken road", kn: "ಹಾಳಾದ ರಸ್ತೆ" },
+  { value: "Water supply", en: "Water supply", kn: "ನೀರು ಪೂರೈಕೆ" },
+  { value: "Street light", en: "Street light", kn: "ರಸ್ತೆ ದೀಪ" },
+  { value: "Drainage", en: "Drainage", kn: "ಚರಂಡಿ" },
+  { value: "Public building", en: "Public building", kn: "ಸಾರ್ವಜನಿಕ ಕಟ್ಟಡ" },
+  { value: "Medical help access", en: "Medical help access", kn: "ವೈದ್ಯಕೀಯ ಸಹಾಯ ಪ್ರವೇಶ" },
+  { value: "Women SOS emergency", en: "Women SOS emergency", kn: "ಮಹಿಳಾ SOS ತುರ್ತು ಪರಿಸ್ಥಿತಿ" }
+];
+
+const soilOptions = [
+  { value: "", en: "Select soil type", kn: "ಮಣ್ಣಿನ ವಿಧ ಆಯ್ಕೆ ಮಾಡಿ" },
+  { value: "Red", en: "Red", kn: "ಕೆಂಪು ಮಣ್ಣು" },
+  { value: "Black", en: "Black", kn: "ಕಪ್ಪು ಮಣ್ಣು" },
+  { value: "Loamy", en: "Loamy", kn: "ಲೋಮಿ ಮಣ್ಣು" },
+  { value: "Sandy", en: "Sandy", kn: "ಮರಳು ಮಣ್ಣು" }
+];
 
 const localEmergencyContacts = {
   features: [
@@ -294,6 +399,15 @@ function setReportStatus(message, isError = false) {
   const node = document.getElementById("reportStatus");
   node.textContent = message;
   node.style.color = isError ? "#ffb4b4" : "#b4ffd2";
+}
+
+function renderSelectOptions(selectId, options) {
+  const select = document.getElementById(selectId);
+  const selected = select.value;
+  select.innerHTML = options.map((option) =>
+    `<option value="${escapeHtml(option.value)}">${escapeHtml(state.language === "kn" ? option.kn : option.en)}</option>`
+  ).join("");
+  select.value = selected;
 }
 
 function setSosStatus(message, isError = false) {
@@ -418,7 +532,7 @@ function updateUserLocation(position) {
     distanceKm(state.lastPlacesLookupLocation, nextLocation) >= 0.25;
 
   state.userLocation = nextLocation;
-  setIndicator(t("online"), `Live GPS: ${nextLocation.lat.toFixed(5)}, ${nextLocation.lng.toFixed(5)}`);
+  setIndicator(t("online"), `${state.language === "kn" ? "ಲೈವ್ ಜಿಪಿಎಸ್" : "Live GPS"}: ${nextLocation.lat.toFixed(5)}, ${nextLocation.lng.toFixed(5)}`);
 
   if (state.map) {
     state.map.setView([nextLocation.lat, nextLocation.lng], 14);
@@ -487,24 +601,167 @@ function findNearbyServices() {
   renderServiceCards(savedSupportPlaces());
 }
 
+function formatRupees(value) {
+  return `${t("rupeePrefix")}${Number(value).toLocaleString("en-IN")}`;
+}
+
+function cropLabel(crop) {
+  return state.language === "kn" ? crop.cropKn : crop.crop;
+}
+
 function renderSoilAdvice(soil) {
   state.activeSoil = soil;
   const node = document.getElementById("soilAdvice");
-  const advice = soilRules[soil];
+  const advice = soilAdviceText[soil];
+  const crops = cropPlans[soil] || [];
 
   if (!advice) {
     node.textContent = t("soilDefault");
+    document.getElementById("cropEconomics").innerHTML = "";
+    document.getElementById("weatherPlanning").innerHTML = "";
     document.getElementById("videoGrid").innerHTML = "";
     return;
   }
 
   node.innerHTML = `
-    <p><strong>Recommended fertilizer:</strong> ${escapeHtml(advice.fertilizer)}</p>
-    <p><strong>Suggested crops:</strong> ${escapeHtml(advice.crops)}</p>
-    <p><strong>Water note:</strong> ${escapeHtml(advice.water)}</p>
+    <p><strong>${state.language === "kn" ? "ಶಿಫಾರಸಾದ ಗೊಬ್ಬರ" : "Recommended fertilizer"}:</strong> ${escapeHtml(state.language === "kn" ? advice.fertilizerKn : advice.fertilizer)}</p>
+    <p><strong>${state.language === "kn" ? "ನೀರಿನ ಸಲಹೆ" : "Water note"}:</strong> ${escapeHtml(state.language === "kn" ? advice.waterKn : advice.water)}</p>
+    <p class="panel-meta">${t("perAcreNote")}</p>
   `;
 
+  renderCropEconomics(crops);
+  loadWeatherEstimate();
   loadIrrigationVideos(soil);
+}
+
+function renderCropEconomics(crops) {
+  const node = document.getElementById("cropEconomics");
+  if (!crops.length) {
+    node.innerHTML = "";
+    return;
+  }
+
+  const ranked = crops.map((crop) => ({
+    ...crop,
+    profitValue: crop.revenue - crop.spend
+  })).sort((a, b) => b.profitValue - a.profitValue);
+  const best = ranked[0];
+
+  node.innerHTML = `
+    <div class="crop-summary">
+      <div>
+        <p class="panel-kicker">${t("cropComparison")}</p>
+        <h3>${t("bestReturn")}: ${escapeHtml(cropLabel(best))} (${formatRupees(best.profitValue)})</h3>
+      </div>
+      <p class="panel-meta">${t("perAcreNote")}</p>
+    </div>
+    <div class="crop-table-wrap">
+      <table class="crop-table">
+        <thead>
+          <tr>
+            <th>${state.language === "kn" ? "ಬೆಳೆ" : "Crop"}</th>
+            <th>${t("spend")}</th>
+            <th>${t("revenue")}</th>
+            <th>${t("profit")}</th>
+            <th>${t("growTime")}</th>
+            <th>${t("waterNeed")}</th>
+            <th>${t("risk")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ranked.map((crop) => `
+            <tr>
+              <td><strong>${escapeHtml(cropLabel(crop))}</strong></td>
+              <td>${formatRupees(crop.spend)}</td>
+              <td>${crop.revenue ? formatRupees(crop.revenue) : t("longTerm")}</td>
+              <td class="${crop.profitValue > 0 ? "profit-positive" : "profit-wait"}">${crop.profitValue > 0 ? formatRupees(crop.profitValue) : t("later")}</td>
+              <td>${crop.days} ${t("days")}</td>
+              <td>${escapeHtml(state.language === "kn" ? crop.waterKn : crop.water)}</td>
+              <td>${escapeHtml(state.language === "kn" ? crop.riskKn : crop.risk)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function loadWeatherEstimate() {
+  const node = document.getElementById("weatherPlanning");
+  const point = state.userLocation || { lat: 13.34, lng: 77.1 };
+  node.innerHTML = `<div class="weather-card"><p class="panel-kicker">${t("weatherMonth")}</p><p class="panel-meta">${t("loadingWeather")} ${state.userLocation ? "" : t("weatherNoGps")}</p></div>`;
+
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${point.lat}&longitude=${point.lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&forecast_days=16&timezone=auto`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Weather unavailable");
+    }
+    const data = await response.json();
+    const rainTotal = (data.daily?.precipitation_sum || []).reduce((sum, value) => sum + Number(value || 0), 0);
+    const maxTemps = data.daily?.temperature_2m_max || [];
+    const minTemps = data.daily?.temperature_2m_min || [];
+    const avgTemp = maxTemps.length
+      ? maxTemps.reduce((sum, value, index) => sum + ((Number(value) + Number(minTemps[index] || value)) / 2), 0) / maxTemps.length
+      : 0;
+    const hotDays = maxTemps.filter((value) => Number(value) >= 34).length;
+    const estimatedMonthRain = rainTotal * (30 / Math.max(maxTemps.length, 1));
+    const advice = weatherPreparationAdvice(estimatedMonthRain, hotDays, avgTemp);
+
+    node.innerHTML = `
+      <div class="weather-card">
+        <div class="crop-summary">
+          <div>
+            <p class="panel-kicker">${t("weatherMonth")}</p>
+            <h3>${t("weatherSummary")}</h3>
+          </div>
+        <p class="panel-meta">${state.userLocation ? "" : t("weatherNoGps")} ${state.language === "kn" ? "16 ದಿನಗಳ ಹವಾಮಾನ ಮಾಹಿತಿಯ ಆಧಾರದ ಮೇಲೆ 30 ದಿನಗಳ ಅಂದಾಜು." : "30-day estimate based on the 16-day forecast."}</p>
+      </div>
+      <div class="weather-grid">
+          <div><span>${t("rain")}</span><strong>${estimatedMonthRain.toFixed(0)} ${t("mm")}</strong></div>
+          <div><span>${t("avgTemp")}</span><strong>${avgTemp.toFixed(1)}°C</strong></div>
+          <div><span>${t("hotDays")}</span><strong>${hotDays}</strong></div>
+        </div>
+        <p><strong>${t("prepAdvice")}:</strong> ${escapeHtml(advice)}</p>
+      </div>
+    `;
+  } catch {
+    node.innerHTML = `
+      <div class="weather-card">
+        <p class="panel-kicker">${t("weatherMonth")}</p>
+        <p>${state.language === "kn"
+          ? "ಹವಾಮಾನ ಅಂದಾಜು ಈಗ ಲಭ್ಯವಿಲ್ಲ. ನೀರು ಕಡಿಮೆ ಇರಬಹುದು ಎಂದು drip irrigation, mulching, ಮತ್ತು ಬೀಜ/ಗೊಬ್ಬರವನ್ನು ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧಪಡಿಸಿ."
+          : "Weather estimate is unavailable right now. Prepare with drip irrigation, mulching, and seed/fertilizer planning in case water is limited."
+        }</p>
+      </div>
+    `;
+  }
+}
+
+function weatherPreparationAdvice(rainMm, hotDays, avgTemp) {
+  if (state.language === "kn") {
+    if (rainMm < 30) {
+      return "ಮಳೆ ಕಡಿಮೆ ಕಾಣುತ್ತಿದೆ. ಕಡಿಮೆ ನೀರಿನ ಬೆಳೆ ಆರಿಸಿ, mulching ಮಾಡಿ, drip irrigation ಇಟ್ಟುಕೊಳ್ಳಿ.";
+    }
+    if (rainMm > 120) {
+      return "ಮಳೆ ಹೆಚ್ಚು ಇರಬಹುದು. ನೀರು ನಿಲ್ಲದಂತೆ drainage ಮಾಡಿ, fungal disease ಗಮನಿಸಿ.";
+    }
+    if (hotDays >= 5 || avgTemp >= 30) {
+      return "ಬಿಸಿ ದಿನಗಳು ಹೆಚ್ಚು. ಬೆಳಗ್ಗೆ/ಸಂಜೆ ನೀರಾವರಿ ಮಾಡಿ, ಗಿಡಗಳಿಗೆ moisture stress ಬರದಂತೆ ನೋಡಿಕೊಳ್ಳಿ.";
+    }
+    return "ಹವಾಮಾನ ಮಧ್ಯಮವಾಗಿದೆ. ಬೀಜ, ಗೊಬ್ಬರ, ನೀರಾವರಿ ವೇಳಾಪಟ್ಟಿ ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧಪಡಿಸಿ.";
+  }
+
+  if (rainMm < 30) {
+    return "Rain looks low. Prefer low-water crops, mulch early, and keep drip irrigation ready.";
+  }
+  if (rainMm > 120) {
+    return "Rain may be high. Prepare drainage and watch for fungal disease.";
+  }
+  if (hotDays >= 5 || avgTemp >= 30) {
+    return "Hot days are likely. Irrigate early morning/evening and avoid moisture stress.";
+  }
+  return "Weather looks moderate. Prepare seeds, fertilizer, and irrigation schedule in advance.";
 }
 
 function loadIrrigationVideos(soil) {
@@ -553,7 +810,9 @@ async function submitReport(event) {
   try {
     const result = await sendReportPayload(payload);
     event.target.reset();
-    setReportStatus(result.local ? "Report saved locally. Firebase sync is pending." : t("reportSaved"), result.local);
+    setReportStatus(result.local
+      ? state.language === "kn" ? "ದೂರು ಸ್ಥಳೀಯವಾಗಿ ಉಳಿಸಲಾಗಿದೆ. ಫೈರ್‌ಬೇಸ್ ಸೇರಿಸುವುದು ಬಾಕಿ ಇದೆ." : "Report saved locally. Firebase sync is pending."
+      : t("reportSaved"), result.local);
   } catch (error) {
     setReportStatus(error.message || t("reportFailed"), true);
   }
@@ -650,8 +909,8 @@ function stopSosBuzzer() {
 
 function fillSosComplaintForm() {
   const locationText = state.userLocation
-    ? `Live GPS ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`
-    : "Live GPS pending";
+    ? state.language === "kn" ? `ಲೈವ್ ಜಿಪಿಎಸ್ ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}` : `Live GPS ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`
+    : state.language === "kn" ? "ಲೈವ್ ಜಿಪಿಎಸ್ ಬಾಕಿ ಇದೆ" : "Live GPS pending";
   const police = nearestPolicePlace();
 
   document.getElementById("issueType").value = "Women SOS emergency";
@@ -695,14 +954,14 @@ async function updateSosLocationSharing(force = false) {
   try {
     const result = await sendReportPayload({
       type: "Women SOS emergency",
-      locationLabel: `Live GPS ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`,
+      locationLabel: `${state.language === "kn" ? "ಲೈವ್ ಜಿಪಿಎಸ್" : "Live GPS"} ${state.userLocation.lat.toFixed(6)}, ${state.userLocation.lng.toFixed(6)}`,
       details: document.getElementById("issueDetails").value,
       gps: state.userLocation
     });
     if (result.local) {
-      setReportStatus(state.language === "kn" ? "ಮಹಿಳಾ SOS ದೂರು locally save ಆಗಿದೆ. Firebase sync pending." : "Women SOS complaint saved locally. Firebase sync is pending.", true);
+    setReportStatus(state.language === "kn" ? "ಮಹಿಳಾ SOS ದೂರು ಸ್ಥಳೀಯವಾಗಿ ಉಳಿಸಲಾಗಿದೆ. ಫೈರ್‌ಬೇಸ್ ಸೇರಿಸುವುದು ಬಾಕಿ ಇದೆ." : "Women SOS complaint saved locally. Firebase sync is pending.", true);
       setSosStatus(state.language === "kn"
-        ? `ತುರ್ತು active. ಸ್ಥಳ form ನಲ್ಲಿ ಉಳಿದಿದೆ: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`
+        ? `ತುರ್ತು ಸಕ್ರಿಯವಾಗಿದೆ. ಸ್ಥಳ ದೂರು ನಮೂನೆಯಲ್ಲಿ ಉಳಿದಿದೆ: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`
         : `Emergency active. Location is saved in the complaint form: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`, true);
       return;
     }
@@ -711,7 +970,7 @@ async function updateSosLocationSharing(force = false) {
       ? `ತುರ್ತು ದೂರು ಕಳುಹಿಸಲಾಗಿದೆ. ಲೈವ್ ಸ್ಥಳ ಹಂಚಲಾಗುತ್ತಿದೆ: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`
       : `Emergency report sent. Sharing live location: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}`);
   } catch (error) {
-    setSosStatus(state.language === "kn" ? "ತುರ್ತು ಸಕ್ರಿಯವಾಗಿದೆ. ದೂರು form ತುಂಬಲಾಗಿದೆ; Firebase ಗೆ ಕಳುಹಿಸುವುದು pending." : "Emergency active. Complaint form is filled; Firebase report send is pending.", true);
+    setSosStatus(state.language === "kn" ? "ತುರ್ತು ಸಕ್ರಿಯವಾಗಿದೆ. ದೂರು ನಮೂನೆ ತುಂಬಲಾಗಿದೆ; ಫೈರ್‌ಬೇಸ್‌ಗೆ ಕಳುಹಿಸುವುದು ಬಾಕಿ ಇದೆ." : "Emergency active. Complaint form is filled; Firebase report send is pending.", true);
     setReportStatus(error.message || t("reportFailed"), true);
   }
 }
@@ -733,8 +992,8 @@ function startWomenSos() {
 function stopWomenSos() {
   state.sosActive = false;
   stopSosBuzzer();
-  setSosStatus(state.language === "kn" ? "SOS ನಿಲ್ಲಿಸಲಾಗಿದೆ. ದೂರು ವಿವರಗಳು form ನಲ್ಲಿ ಉಳಿದಿವೆ." : "SOS stopped. Complaint details remain in the form.");
-  setIndicator(t("online"), state.userLocation ? `Live GPS: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}` : t("waitingGps"));
+  setSosStatus(state.language === "kn" ? "SOS ನಿಲ್ಲಿಸಲಾಗಿದೆ. ದೂರು ವಿವರಗಳು ನಮೂನೆಯಲ್ಲಿ ಉಳಿದಿವೆ." : "SOS stopped. Complaint details remain in the form.");
+  setIndicator(t("online"), state.userLocation ? `${state.language === "kn" ? "ಲೈವ್ ಜಿಪಿಎಸ್" : "Live GPS"}: ${state.userLocation.lat.toFixed(5)}, ${state.userLocation.lng.toFixed(5)}` : t("waitingGps"));
 }
 
 async function fetchBackendChat(message) {
@@ -849,7 +1108,7 @@ function localAssistantReply(message) {
         "1. ಸುರಕ್ಷಿತವಾಗಿದ್ದರೆ ಜನರನ್ನು ಅಪಾಯದಿಂದ ದೂರ ಸರಿಸಿ.",
         "2. ವೈದ್ಯಕೀಯ ಸಹಾಯಕ್ಕೆ 108 ಅಥವಾ ಪೊಲೀಸ್ ಸಹಾಯಕ್ಕೆ 100 ಕರೆ ಮಾಡಿ.",
         "3. ನಿಮ್ಮ ಗ್ರಾಮ, ಗುರುತು ಸ್ಥಳ, ಮತ್ತು ಆ್ಯಪ್‌ನಲ್ಲಿ ಕಾಣುವ GPS ಮಾಹಿತಿ ಹಂಚಿ.",
-        "4. ತುರ್ತು ಕರೆ ಮಾಡಿದ ನಂತರ report form ಬಳಸಿ ಸಮಸ್ಯೆ ದಾಖಲಿಸಿ."
+        "4. ತುರ್ತು ಕರೆ ಮಾಡಿದ ನಂತರ ದೂರು ನಮೂನೆ ಬಳಸಿ ಸಮಸ್ಯೆ ದಾಖಲಿಸಿ."
       ].join("\n");
     }
     return [
@@ -870,12 +1129,17 @@ function localAssistantReply(message) {
 
   if (hasAny(["soil", "crop", "farm", "water", "irrigation", "ಮಣ್ಣು", "ಬೆಳೆ", "ಕೃಷಿ", "ನೀರು", "ನೀರಾವರಿ"])) {
     const soil = state.activeSoil;
-    const advice = soilRules[soil];
-    if (advice) {
+    const advice = soilAdviceText[soil];
+    const crops = cropPlans[soil] || [];
+    if (advice && crops.length) {
+      const topCrops = crops
+        .map((crop) => ({ ...crop, profitValue: crop.revenue - crop.spend }))
+        .sort((a, b) => b.profitValue - a.profitValue)
+        .slice(0, 3);
       if (isKannada) {
-        return `${soil} ಮಣ್ಣಿಗೆ: ಶಿಫಾರಸಾದ ಬೆಳೆಗಳು ${advice.crops}, ಗೊಬ್ಬರ ಸಹಾಯ ${advice.fertilizer}, ಮತ್ತು ನೀರಿನ ಸಲಹೆ: ${advice.water}`;
+        return `${soil} ಮಣ್ಣಿಗೆ ಉತ್ತಮ ಅಂದಾಜು ಬೆಳೆಗಳು: ${topCrops.map((crop) => `${crop.cropKn} (${formatRupees(crop.profitValue)} ಲಾಭ, ${crop.days} ದಿನಗಳು)`).join(", ")}. ಗೊಬ್ಬರ: ${advice.fertilizerKn}. ನೀರಿನ ಸಲಹೆ: ${advice.waterKn}`;
       }
-      return `For ${soil} soil: suggested crops are ${advice.crops}, fertilizer support is ${advice.fertilizer}, and water guidance is: ${advice.water}`;
+      return `For ${soil} soil, good estimated options are: ${topCrops.map((crop) => `${crop.crop} (${formatRupees(crop.profitValue)} profit, ${crop.days} days)`).join(", ")}. Fertilizer: ${advice.fertilizer}. Water guidance: ${advice.water}`;
     }
     if (isKannada) {
       return "ಮೊದಲು soil type ಆಯ್ಕೆ ಮಾಡಿ. ನೀರು ಕಡಿಮೆ ಇದ್ದರೆ drip irrigation, mulching, ಬೆಳಗಿನ ನೀರಾವರಿ, ಮತ್ತು ನಿಮ್ಮ ಮಣ್ಣಿಗೆ ಸರಿಯಾದ ಕಡಿಮೆ ಅವಧಿಯ ಬೆಳೆಗಳನ್ನು ಆರಿಸಿ.";
@@ -1091,11 +1355,16 @@ function applyTranslations() {
   document.getElementById("chatInput").placeholder = t("chatPlaceholder");
   document.getElementById("issueLocation").placeholder = t("issuePlaceholder");
   document.getElementById("issueDetails").placeholder = t("detailsPlaceholder");
+  renderSelectOptions("issueType", issueOptions);
+  renderSelectOptions("soilSelect", soilOptions);
   setMicButtonState();
   if (state.sosActive) {
     renderSosPoliceCard();
     fillSosComplaintForm();
     setSosStatus(`${t("sosActiveLabel")}, ${t("sharingLiveLocation")}`);
+  }
+  if (state.activeSoil) {
+    renderSoilAdvice(state.activeSoil);
   }
 }
 
