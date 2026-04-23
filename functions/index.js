@@ -8,7 +8,7 @@ initializeApp();
 
 const db = getFirestore();
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-flash-latest";
 
 exports.api = onRequest({ cors: true, region: "asia-south1", secrets: [GEMINI_API_KEY] }, async (req, res) => {
   try {

@@ -562,43 +562,56 @@ async function fetchDirectGeminiChat(message) {
     throw new Error("Gemini API key is missing and the Firebase AI backend is unavailable.");
   }
 
+  const models = ["gemini-flash-latest", "gemini-2.5-flash-lite", "gemma-3-4b-it"];
   const languageInstruction = state.language === "kn"
     ? "Reply in Kannada unless the user asks for another language."
     : "Reply in English unless the user asks for another language.";
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            {
-              text: [
-                "You are the Rural Resilience Hub assistant.",
-                "Give practical, concise answers for rural users on farming, emergencies, nearby support, women and child safety, and civic complaints.",
-                languageInstruction,
-                state.activeSoil ? `Active soil type: ${state.activeSoil}.` : "",
-                state.userLocation ? `User GPS coordinates: ${state.userLocation.lat.toFixed(4)}, ${state.userLocation.lng.toFixed(4)}.` : "",
-                `User message: ${message}`
-              ].filter(Boolean).join(" ")
-            }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 700
+  const body = {
+    contents: [
+      {
+        parts: [
+          {
+            text: [
+              "You are the Rural Resilience Hub assistant.",
+              "Give practical, concise answers for rural users on farming, emergencies, nearby support, women and child safety, and civic complaints.",
+              languageInstruction,
+              state.activeSoil ? `Active soil type: ${state.activeSoil}.` : "",
+              state.userLocation ? `User GPS coordinates: ${state.userLocation.lat.toFixed(4)}, ${state.userLocation.lng.toFixed(4)}.` : "",
+              `User message: ${message}`
+            ].filter(Boolean).join(" ")
+          }
+        ]
       }
-    })
-  });
+    ],
+    generationConfig: {
+      temperature: 0.5,
+      maxOutputTokens: 700
+    }
+  };
 
-  const result = await response.json();
-  if (!response.ok) {
-    throw new Error(result?.error?.message || "Chat request failed");
+  let lastError = null;
+  for (const model of models) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error?.message || "Chat request failed");
+      }
+      const reply = (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
+      if (reply) {
+        return reply;
+      }
+      lastError = new Error("Gemini returned an empty response.");
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  return (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
+  throw lastError || new Error("Chat request failed");
 }
 
 function localAssistantReply(message) {
