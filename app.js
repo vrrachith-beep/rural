@@ -3,6 +3,10 @@ const config = window.APP_CONFIG || {};
 const GEMINI_API_KEY = config.geminiApiKey || "";
 const API_BASE_URL = config.apiBaseUrl || "/api";
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const CHAT_SESSION_ID = window.localStorage?.getItem("ruralChatSessionId") ||
+  `rural-chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+window.localStorage?.setItem("ruralChatSessionId", CHAT_SESSION_ID);
 
 const state = {
   map: null,
@@ -39,7 +43,7 @@ const translations = {
     chatSubtitle: "Ask about crops, emergencies, reports, or what help is nearby.",
     askAssistant: "Ask the assistant",
     chatPlaceholder: "Example: I am on black soil and nearby water is low, what should I plant?",
-    chatStatusReady: "Chatbot uses Gemini directly and the map uses GPS with OpenStreetMap.",
+    chatStatusReady: "Chatbot uses the Firebase AI backend and the map uses your saved support locations.",
     mic: "Mic",
     speakReply: "Speak reply",
     send: "Send",
@@ -115,7 +119,7 @@ const translations = {
     chatSubtitle: "ಬೆಳೆಗಳು, ತುರ್ತು ಪರಿಸ್ಥಿತಿ, ದೂರುಗಳು ಅಥವಾ ಹತ್ತಿರದ ಸಹಾಯ ಬಗ್ಗೆ ಕೇಳಿ.",
     askAssistant: "ಸಹಾಯಕನನ್ನು ಕೇಳಿ",
     chatPlaceholder: "ಉದಾಹರಣೆ: ನಾನು ಕಪ್ಪು ಮಣ್ಣಿನಲ್ಲಿ ಇದ್ದೇನೆ ಮತ್ತು ನೀರು ಕಡಿಮೆ ಇದೆ, ಯಾವ ಬೆಳೆ ಬೆಳೆಸಲಿ?",
-    chatStatusReady: "ಚಾಟ್‌ಬಾಟ್ Gemini ನ್ನೇ ನೇರವಾಗಿ ಬಳಸುತ್ತದೆ ಮತ್ತು ನಕ್ಷೆ GPS ಜೊತೆಗೆ OpenStreetMap ಬಳಸುತ್ತದೆ.",
+    chatStatusReady: "ಚಾಟ್‌ಬಾಟ್ Firebase AI backend ಬಳಸುತ್ತದೆ ಮತ್ತು ನಕ್ಷೆ ನಿಮ್ಮ ಉಳಿಸಿದ ಸಹಾಯ ಸ್ಥಳಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
     mic: "ಮೈಕ್",
     speakReply: "ಉತ್ತರವನ್ನು ಕೇಳಿ",
     send: "ಕಳುಹಿಸಿ",
@@ -198,10 +202,10 @@ const soilRules = {
 
 const localEmergencyContacts = {
   features: [
-    { category: "Police Station", name: "Demo Rural Police Outpost", phone: "100", distance: "1.2 km", location: { lat: 12.9716, lng: 77.5946 } },
-    { category: "District Court", name: "Demo District Legal Aid Desk", phone: "15100", distance: "3.8 km", location: { lat: 12.9816, lng: 77.6046 } },
-    { category: "Government Hospital", name: "Demo Government Hospital", phone: "108", distance: "2.4 km", location: { lat: 12.9616, lng: 77.5846 } },
-    { category: "Medical Diagnostic Center", name: "Demo Diagnostic Center", phone: "104", distance: "4.1 km", location: { lat: 12.9516, lng: 77.5746 } }
+    { category: "Police Station", name: "Police Outpost, Sadashivnagar, Tumkur", phone: "100", distanceText: "Saved location", location: { lat: 13.3277513, lng: 77.0891051 } },
+    { category: "District Court", name: "Free Legal Advice", phone: "15100", distanceText: "Saved location", location: { lat: 13.0024486, lng: 77.5302011 } },
+    { category: "Government Hospital", name: "District Hospital, Tumakuru", phone: "108", distanceText: "Saved location", location: { lat: 13.3399985, lng: 77.1000114 } },
+    { category: "Medical Diagnostic Center", name: "Krsnaa Diagnostics Ltd. (District Hospital Tumakuru)", phone: "104", distanceText: "Saved location", location: { lat: 13.3407875, lng: 77.099508 } }
   ]
 };
 
@@ -288,6 +292,15 @@ function formatDistance(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
 }
 
+function savedSupportPlaces() {
+  return localEmergencyContacts.features.map((place) => ({
+    ...place,
+    distanceText: state.userLocation
+      ? formatDistance(distanceKm(state.userLocation, place.location))
+      : place.distanceText
+  }));
+}
+
 function cardTemplate(place) {
   const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`;
   const tel = place.phone ? `tel:${place.phone}` : "tel:108";
@@ -321,7 +334,7 @@ function renderServiceCards(places) {
 function manualOverride(reason) {
   setIndicator(t("offlineMode"), reason || "Using local emergency contacts.");
   setTrackingMode(t("fallbackContacts"));
-  renderServiceCards(localEmergencyContacts.features);
+  renderServiceCards(savedSupportPlaces());
 }
 
 function initMap() {
@@ -435,12 +448,8 @@ function findNearbyServices() {
     return;
   }
 
-  Promise.all(nearbySearches.map(searchPlaces))
-    .then((groups) => {
-      const places = groups.flat();
-      renderServiceCards(places.length ? places : localEmergencyContacts.features);
-    })
-    .catch(() => manualOverride("Nearby search failed. Showing local emergency cards."));
+  setTrackingMode(t("liveGpsMode"));
+  renderServiceCards(savedSupportPlaces());
 }
 
 function renderSoilAdvice(soil) {
@@ -525,6 +534,147 @@ async function submitReport(event) {
   }
 }
 
+async function fetchBackendChat(message) {
+  const response = await fetch(`${API_BASE_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      sessionId: CHAT_SESSION_ID,
+      context: {
+        language: state.language,
+        soil: state.activeSoil,
+        gps: state.userLocation
+      }
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error?.message || "Chat request failed");
+  }
+
+  return (result?.reply || "").trim();
+}
+
+async function fetchDirectGeminiChat(message) {
+  if (!GEMINI_API_KEY) {
+    throw new Error("Gemini API key is missing and the Firebase AI backend is unavailable.");
+  }
+
+  const languageInstruction = state.language === "kn"
+    ? "Reply in Kannada unless the user asks for another language."
+    : "Reply in English unless the user asks for another language.";
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: [
+                "You are the Rural Resilience Hub assistant.",
+                "Give practical, concise answers for rural users on farming, emergencies, nearby support, women and child safety, and civic complaints.",
+                languageInstruction,
+                state.activeSoil ? `Active soil type: ${state.activeSoil}.` : "",
+                state.userLocation ? `User GPS coordinates: ${state.userLocation.lat.toFixed(4)}, ${state.userLocation.lng.toFixed(4)}.` : "",
+                `User message: ${message}`
+              ].filter(Boolean).join(" ")
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 700
+      }
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error?.message || "Chat request failed");
+  }
+
+  return (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
+}
+
+async function fetchBackendSpeech(text) {
+  const response = await fetch(`${API_BASE_URL}/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      language: state.language
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error?.message || t("voiceError"));
+  }
+
+  if (!result?.audioBase64) {
+    throw new Error(t("voiceError"));
+  }
+
+  return {
+    mimeType: result.mimeType || "audio/wav",
+    audioBase64: result.audioBase64
+  };
+}
+
+async function fetchDirectGeminiSpeech(text) {
+  if (!GEMINI_API_KEY) {
+    throw new Error("Gemini API key is missing and the Firebase AI backend is unavailable.");
+  }
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: state.language === "kn"
+                ? `Read this naturally in Kannada: ${text}`
+                : `Read this naturally in English: ${text}`
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: state.language === "kn" ? "Kore" : "Aoede"
+            }
+          }
+        }
+      }
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.error?.message || t("voiceError"));
+  }
+
+  const audioPart = result?.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
+  if (!audioPart?.inlineData?.data) {
+    throw new Error(t("voiceError"));
+  }
+
+  return {
+    mimeType: audioPart.inlineData.mimeType || "audio/wav",
+    audioBase64: audioPart.inlineData.data
+  };
+}
+
 async function submitChatMessage(event) {
   event.preventDefault();
   const input = document.getElementById("chatInput");
@@ -538,49 +688,15 @@ async function submitChatMessage(event) {
   setChatStatus(t("thinking"));
 
   try {
-    if (!GEMINI_API_KEY) {
-      throw new Error("Gemini API key is missing.");
+    let reply = "";
+    try {
+      reply = await fetchBackendChat(message);
+    } catch {
+      reply = await fetchDirectGeminiChat(message);
     }
 
-    const languageInstruction = state.language === "kn"
-      ? "Reply in Kannada unless the user asks for another language."
-      : "Reply in English unless the user asks for another language.";
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: [
-                  "You are the Rural Resilience Hub assistant.",
-                  "Give practical, concise answers for rural users on farming, emergencies, nearby support, women and child safety, and civic complaints.",
-                  languageInstruction,
-                  state.activeSoil ? `Active soil type: ${state.activeSoil}.` : "",
-                  state.userLocation ? `User GPS coordinates: ${state.userLocation.lat.toFixed(4)}, ${state.userLocation.lng.toFixed(4)}.` : "",
-                  `User message: ${message}`
-                ].filter(Boolean).join(" ")
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.5,
-          maxOutputTokens: 700
-        }
-      })
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result?.error?.message || "Chat request failed");
-    }
-
-    const reply = (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("").trim();
     if (!reply) {
-      throw new Error("Gemini returned an empty response.");
+      throw new Error("Assistant returned an empty response.");
     }
 
     state.lastAssistantReply = reply;
@@ -642,49 +758,14 @@ async function speakAssistantReply() {
   setChatStatus(t("speaking"));
 
   try {
-    if (!GEMINI_API_KEY) {
-      throw new Error("Gemini API key is missing.");
+    let speech = null;
+    try {
+      speech = await fetchBackendSpeech(state.lastAssistantReply);
+    } catch {
+      speech = await fetchDirectGeminiSpeech(state.lastAssistantReply);
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: state.language === "kn"
-                  ? `Read this naturally in Kannada: ${state.lastAssistantReply}`
-                  : `Read this naturally in English: ${state.lastAssistantReply}`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseModalities: ["AUDIO"],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: state.language === "kn" ? "Kore" : "Aoede"
-              }
-            }
-          }
-        }
-      })
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result?.error?.message || t("voiceError"));
-    }
-
-    const audioPart = result?.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
-    if (!audioPart?.inlineData?.data) {
-      throw new Error(t("voiceError"));
-    }
-
-    const audio = new Audio(`data:${audioPart.inlineData.mimeType || "audio/wav"};base64,${audioPart.inlineData.data}`);
+    const audio = new Audio(`data:${speech.mimeType};base64,${speech.audioBase64}`);
     audio.onended = () => setChatStatus(t("voiceReady"));
     await audio.play();
   } catch (error) {

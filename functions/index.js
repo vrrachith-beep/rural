@@ -6,7 +6,7 @@ const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 initializeApp();
 
 const db = getFirestore();
-const GEMINI_API_KEY = "AIzaSyDJloiqER9Nj3dODerUXSdvOq9H-7tp56M";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const MODEL = "gemini-2.5-flash";
 
 exports.api = onRequest({ cors: true, region: "asia-south1" }, async (req, res) => {
